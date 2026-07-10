@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   TrendingUp, 
@@ -24,11 +24,11 @@ import { useStadiumGates } from './hooks/useStadiumGates';
 import { useSpeechSynthesis } from './hooks/useSpeechSynthesis';
 import { useAcousticSensor } from './hooks/useAcousticSensor';
 
-// Modular Components
-import GateRadarMap from './components/GateRadarMap';
-import TranslationConsole from './components/TranslationConsole';
-import MegaphoneControl from './components/MegaphoneControl';
-import HowItWorks from './components/HowItWorks';
+// Modular Components (Lazy Loaded)
+const GateRadarMap = lazy(() => import('./components/GateRadarMap'));
+const TranslationConsole = lazy(() => import('./components/TranslationConsole'));
+const MegaphoneControl = lazy(() => import('./components/MegaphoneControl'));
+const HowItWorks = lazy(() => import('./components/HowItWorks'));
 import ConsoleLogs from './components/ConsoleLogs';
 
 export default function App() {
@@ -674,7 +674,9 @@ export default function App() {
             {/* Explanatory Banner */}
             <AnimatePresence>
               {showHowItWorks && (
-                <HowItWorks onClose={() => setShowHowItWorks(false)} />
+                <Suspense fallback={<div className="h-20 animate-pulse bg-pitch-dark/40 border border-moss-dark/60 rounded-lg" />}>
+                  <HowItWorks onClose={() => setShowHowItWorks(false)} />
+                </Suspense>
               )}
             </AnimatePresence>
 
@@ -921,7 +923,9 @@ export default function App() {
           </div>
 
           {/* Real-time Gate Radar Map rendering */}
-          <GateRadarMap gates={gates} alerts={alerts} />
+          <Suspense fallback={<div className="h-64 animate-pulse bg-pitch-dark/40 border border-moss-dark/60 rounded-lg" />}>
+            <GateRadarMap gates={gates} alerts={alerts} />
+          </Suspense>
 
           {/* Active Copilot Actionable Recommendations Panel */}
           <div id="copilot-intelligence-center" className="bg-pitch-dark/80 border border-moss-dark/60 rounded-lg overflow-hidden shadow-[0_4px_24px_rgba(0,0,0,0.3)] relative">
@@ -1134,42 +1138,46 @@ export default function App() {
 
         {/* Right Section: Multilingual Supporter Translator & Live Operational Console logs */}
         <section className="col-span-1 lg:col-span-4 flex flex-col space-y-6">
-          <TranslationConsole
-            speechInputLang={speechInputLang}
-            setSpeechInputLang={setSpeechInputLang}
-            supporterPhrase={supporterPhrase}
-            setSupporterPhrase={setSupporterPhrase}
-            isTranslating={isTranslating}
-            translationResult={translationResult}
-            errorTranslate={errorTranslate}
-            voiceToneResult={voiceToneResult}
-            setVoiceToneResult={setVoiceToneResult}
-            micPermissionError={micPermissionError}
-            isListening={isListening}
-            listeningTimer={listeningTimer}
-            liveVolumeBars={liveVolumeBars}
-            startVoiceListening={startVoiceListening}
-            stopVoiceListening={stopVoiceListening}
-            handleTranslateSupporter={handleTranslateSupporter}
-            playAnnouncement={playAnnouncement}
-            speakingText={speakingText}
-            addLog={addLog}
-          />
+          <Suspense fallback={<div className="h-64 animate-pulse bg-pitch-dark/40 border border-moss-dark/60 rounded-lg" />}>
+            <TranslationConsole
+              speechInputLang={speechInputLang}
+              setSpeechInputLang={setSpeechInputLang}
+              supporterPhrase={supporterPhrase}
+              setSupporterPhrase={setSupporterPhrase}
+              isTranslating={isTranslating}
+              translationResult={translationResult}
+              errorTranslate={errorTranslate}
+              voiceToneResult={voiceToneResult}
+              setVoiceToneResult={setVoiceToneResult}
+              micPermissionError={micPermissionError}
+              isListening={isListening}
+              listeningTimer={listeningTimer}
+              liveVolumeBars={liveVolumeBars}
+              startVoiceListening={startVoiceListening}
+              stopVoiceListening={stopVoiceListening}
+              handleTranslateSupporter={handleTranslateSupporter}
+              playAnnouncement={playAnnouncement}
+              speakingText={speakingText}
+              addLog={addLog}
+            />
+          </Suspense>
 
           <ConsoleLogs systemLogs={systemLogs} />
         </section>
       </main>
 
       {/* Broadcast Megaphone Dialog Modal */}
-      <MegaphoneControl
-        activeBroadcastAlert={activeBroadcastAlert}
-        setActiveBroadcastAlert={setActiveBroadcastAlert}
-        activeBroadcastLanguage={activeBroadcastLanguage}
-        setActiveBroadcastLanguage={setActiveBroadcastLanguage}
-        isBroadcasting={isBroadcasting}
-        triggerSimulatedBroadcast={triggerSimulatedBroadcast}
-        addLog={addLog}
-      />
+      <Suspense fallback={null}>
+        <MegaphoneControl
+          activeBroadcastAlert={activeBroadcastAlert}
+          setActiveBroadcastAlert={setActiveBroadcastAlert}
+          activeBroadcastLanguage={activeBroadcastLanguage}
+          setActiveBroadcastLanguage={setActiveBroadcastLanguage}
+          isBroadcasting={isBroadcasting}
+          triggerSimulatedBroadcast={triggerSimulatedBroadcast}
+          addLog={addLog}
+        />
+      </Suspense>
 
       {/* Workspace Footer details */}
       <footer className="h-12 border-t border-moss-dark/30 flex items-center justify-between px-6 bg-pitch-black/80 relative z-10 text-[9.5px] font-mono text-sage-soft/40 uppercase">

@@ -83,7 +83,7 @@ describe('App Client Integration', () => {
     render(<App />);
 
     // Type a phrase and click analyze
-    const input = screen.getByPlaceholderText(/Où est l'entrée/i);
+    const input = await screen.findByPlaceholderText(/Où est l'entrée/i);
     fireEvent.change(input, { target: { value: 'donde esta el baño' } });
 
     const analyzeBtn = screen.getByRole('button', { name: /Analyze/i });
@@ -118,7 +118,7 @@ describe('App Client Integration', () => {
     render(<App />);
 
     // Type accessibility-related phrase to trigger the local offline fallback branch
-    const input = screen.getByPlaceholderText(/Où est l'entrée/i);
+    const input = await screen.findByPlaceholderText(/Où est l'entrée/i);
     fireEvent.change(input, { target: { value: 'silla de ruedas' } });
 
     const analyzeBtn = screen.getByRole('button', { name: /Analyze/i });

@@ -34,7 +34,7 @@ describe('Edge Cases', () => {
 
     render(<App />);
 
-    const input = screen.getByPlaceholderText(/Où est l'entrée/i);
+    const input = await screen.findByPlaceholderText(/Où est l'entrée/i);
     fireEvent.change(input, { target: { value: '   ' } });
 
     const analyzeBtn = screen.getByRole('button', { name: /Analyze/i });
@@ -76,7 +76,7 @@ describe('Edge Cases', () => {
 
     render(<App />);
 
-    const input = screen.getByPlaceholderText(/Où est l'entrée/i);
+    const input = await screen.findByPlaceholderText(/Où est l'entrée/i);
     fireEvent.change(input, { target: { value: 'Donde esta la puerta' } });
 
     const analyzeBtn = screen.getByRole('button', { name: /Analyze/i });

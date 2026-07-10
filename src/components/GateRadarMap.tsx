@@ -67,14 +67,12 @@ function GateRadarMap({ gates, alerts }: GateRadarMapProps) {
           className="w-full max-w-2xl aspect-[2/1] text-sage-soft relative z-10"
         >
           <style>{`
-            @keyframes flowDash {
-              to {
-                stroke-dashoffset: -20;
-              }
+            @keyframes flowPulse {
+              0%, 100% { opacity: 0.35; }
+              50% { opacity: 1.0; }
             }
             .animate-flow-line {
-              stroke-dasharray: 6, 4;
-              animation: flowDash 1.2s linear infinite;
+              animation: flowPulse 1.5s ease-in-out infinite;
             }
           `}</style>
 
