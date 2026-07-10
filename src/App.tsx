@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   TrendingUp, 
@@ -34,16 +34,17 @@ import ConsoleLogs from './components/ConsoleLogs';
 export default function App() {
   // Operational Time & System Logging states
   const [currentTime, setCurrentTime] = useState<string>('');
-  const [systemLogs, setSystemLogs] = useState<string[]>([
-    'System initialized in standby mode.',
-    'Establishing live link with SOC (North Hub)...',
-    'Telemetry links nominal on Gates B, C, D, E.'
+  const [systemLogs, setSystemLogs] = useState<{ id: string; text: string }[]>([
+    { id: 'init-1', text: 'System initialized in standby mode.' },
+    { id: 'init-2', text: 'Establishing live link with SOC (North Hub)...' },
+    { id: 'init-3', text: 'Telemetry links nominal on Gates B, C, D, E.' }
   ]);
 
   // Safe Logger helper
   const addLog = useCallback((message: string) => {
     const timestamp = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    setSystemLogs(prev => [`[${timestamp}] ${message}`, ...prev.slice(0, 15)]);
+    const logId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    setSystemLogs(prev => [{ id: logId, text: `[${timestamp}] ${message}` }, ...prev.slice(0, 15)]);
   }, []);
 
   // 1. Consume Custom Hooks
@@ -112,6 +113,7 @@ export default function App() {
   const [expandedAlerts, setExpandedAlerts] = useState<Record<string, boolean>>({});
   const [copiedTextAlert, setCopiedTextAlert] = useState<Record<string, boolean>>({});
   const [showHowItWorks, setShowHowItWorks] = useState<boolean>(false);
+  const copiedAlertTimeoutsRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   // Update simulation current time
   useEffect(() => {
@@ -121,7 +123,11 @@ export default function App() {
     };
     updateTime();
     const interval = setInterval(updateTime, 1000);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      // Clean up copy alert script timeouts
+      Object.values(copiedAlertTimeoutsRef.current).forEach(clearTimeout);
+    };
   }, []);
 
   // Upload/Parse file via Gemini intelligence API proxy
@@ -226,7 +232,7 @@ export default function App() {
   };
 
   // Submit supporter vocal phrase for language translation & severity triage
-  async function handleTranslateSupporter(phraseToSubmit?: string, vocalToneOverride?: VoiceToneResult) {
+  const handleTranslateSupporter = useCallback(async (phraseToSubmit?: string, vocalToneOverride?: VoiceToneResult) => {
     const rawPhrase = phraseToSubmit !== undefined ? phraseToSubmit : supporterPhrase;
     const activePhrase = sanitizeInput(rawPhrase);
     if (!activePhrase) return;
@@ -355,7 +361,7 @@ export default function App() {
           translatedText: "Excuse me, where is the elevator for wheelchair users?",
           urgencyTag: "Accessibility",
           classificationReason: "Accessibility request for wheelchair lift/elevator access in Japanese.",
-          suggestedResponse: "車椅子用のエレベーターは、この角を右に曲がってすぐのところにございます。よろしければ、スタッフ que ご案内いたします。",
+          suggestedResponse: "車椅子用のエレベーターは、この角を右に曲がってすぐのところにございます。よろしければ、スタッフがご案内いたします。",
           suggestedResponseEnglish: "The elevator for wheelchair users is located just around this corner on the right. If you'd like, a staff member can guide you there.",
           detectedTone: "Concerned & Seeking Assistance",
           isLocalFallback: true
@@ -415,7 +421,7 @@ export default function App() {
     } finally {
       setIsTranslating(false);
     }
-  }
+  }, [supporterPhrase, voiceToneResult, addLog]);
 
   // Trigger simulated voice announcers
   const triggerSimulatedBroadcast = () => {
@@ -505,16 +511,20 @@ export default function App() {
     }
   };
 
-  const handleCopyAlertScript = (alertId: string, text: string) => {
+  const handleCopyAlertScript = useCallback((alertId: string, text: string) => {
     navigator.clipboard.writeText(text);
     setCopiedTextAlert(prev => ({ ...prev, [alertId]: true }));
-    setTimeout(() => {
+    if (copiedAlertTimeoutsRef.current[alertId]) {
+      clearTimeout(copiedAlertTimeoutsRef.current[alertId]);
+    }
+    copiedAlertTimeoutsRef.current[alertId] = setTimeout(() => {
       setCopiedTextAlert(prev => ({ ...prev, [alertId]: false }));
+      delete copiedAlertTimeoutsRef.current[alertId];
     }, 2000);
-  };
+  }, []);
 
   // Theme configuration for gate styling
-  const getDensityConfig = (density: number) => {
+  const getDensityConfig = useCallback((density: number) => {
     if (density < 60) {
       return {
         textColor: 'text-pale-mint',
@@ -543,7 +553,7 @@ export default function App() {
         isAlert: true
       };
     }
-  };
+  }, []);
 
   return (
     <div id="zonewatch-container" className="min-h-screen bg-pitch-black text-sage-soft font-sans selection:bg-pale-mint/30 selection:text-pale-mint flex flex-col justify-between overflow-x-hidden antialiased relative">

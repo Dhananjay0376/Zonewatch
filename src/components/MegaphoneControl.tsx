@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, memo } from 'react';
 import { Alert } from '../types';
 import { Volume2, Info, Copy, Check } from 'lucide-react';
 
@@ -12,7 +12,7 @@ interface MegaphoneControlProps {
   addLog: (msg: string) => void;
 }
 
-export default function MegaphoneControl({
+function MegaphoneControl({
   activeBroadcastAlert,
   setActiveBroadcastAlert,
   activeBroadcastLanguage,
@@ -23,6 +23,7 @@ export default function MegaphoneControl({
 }: MegaphoneControlProps) {
   const [copiedText, setCopiedText] = useState<boolean>(false);
   const modalRef = useRef<HTMLDivElement>(null);
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Focus trap and Escape key listener
   useEffect(() => {
@@ -61,6 +62,15 @@ export default function MegaphoneControl({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeBroadcastAlert, setActiveBroadcastAlert]);
 
+  // Clean up copy timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+    };
+  }, []);
+
   if (!activeBroadcastAlert) return null;
 
   const currentScript = activeBroadcastLanguage === 'english'
@@ -75,7 +85,13 @@ export default function MegaphoneControl({
     navigator.clipboard.writeText(text);
     setCopiedText(true);
     addLog("Copied broadcast script to clipboard.");
-    setTimeout(() => setCopiedText(false), 2000);
+    if (copyTimeoutRef.current) {
+      clearTimeout(copyTimeoutRef.current);
+    }
+    copyTimeoutRef.current = setTimeout(() => {
+      setCopiedText(false);
+      copyTimeoutRef.current = null;
+    }, 2000);
   };
 
   return (
@@ -235,3 +251,5 @@ export default function MegaphoneControl({
     </div>
   );
 }
+
+export default memo(MegaphoneControl);

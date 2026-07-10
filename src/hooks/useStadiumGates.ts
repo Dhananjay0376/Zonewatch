@@ -37,6 +37,8 @@ export function useStadiumGates({ addLog }: StadiumGatesProps) {
   const [isRushing, setIsRushing] = useState<boolean>(false);
   const [rushingStep, setRushingStep] = useState<number>(0);
 
+  const rushIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   // Keep latest refs to avoid re-triggering effects with outdated state
   const gatesRef = useRef(gates);
   const alertsRef = useRef(alerts);
@@ -96,7 +98,14 @@ export function useStadiumGates({ addLog }: StadiumGatesProps) {
       severity: targetGate.density >= 90 ? 'critical' : 'warning',
     };
 
-    setAlerts(prev => [placeholderAlert, ...prev]);
+    setAlerts(prev => {
+      const nextAlerts = [placeholderAlert, ...prev];
+      // Cap alerts at 30 to prevent unbounded growth during a long session
+      if (nextAlerts.length > 30) {
+        return nextAlerts.slice(0, 30);
+      }
+      return nextAlerts;
+    });
 
     try {
       const response = await fetch('/api/recommend', {
@@ -195,6 +204,7 @@ export function useStadiumGates({ addLog }: StadiumGatesProps) {
   }, [isSimulating]);
 
   // Reactively audit density thresholds to trigger/resolve alerts
+  // Hysteresis implementation: Trigger alert at >= 80%, but only resolve if density falls below 75%
   useEffect(() => {
     gates.forEach((gate) => {
       const activeAlert = alerts.find(alert => alert.gateId === gate.id && !alert.resolved);
@@ -203,7 +213,7 @@ export function useStadiumGates({ addLog }: StadiumGatesProps) {
         triggerGeminiRecommendation(gate);
       }
       
-      if (gate.density < 80 && activeAlert) {
+      if (gate.density < 75 && activeAlert) {
         resolveActiveAlert(gate.id);
       }
     });
@@ -265,6 +275,10 @@ export function useStadiumGates({ addLog }: StadiumGatesProps) {
     let step = 0;
     const totalSteps = 10;
     
+    if (rushIntervalRef.current) {
+      clearInterval(rushIntervalRef.current);
+    }
+
     const interval = setInterval(() => {
       step++;
       setRushingStep(step);
@@ -298,13 +312,26 @@ export function useStadiumGates({ addLog }: StadiumGatesProps) {
       );
 
       if (step >= totalSteps) {
-        clearInterval(interval);
+        if (rushIntervalRef.current) {
+          clearInterval(rushIntervalRef.current);
+          rushIntervalRef.current = null;
+        }
         setIsRushing(false);
         setIsSimulating(true); // Resume normal background telemetry
         addLog("🚀 DEMO SUCCESS: Surge simulation complete. Live gates breached critical levels!");
       }
     }, 1800);
+    
+    rushIntervalRef.current = interval;
   }, [isRushing, addLog]);
+
+  useEffect(() => {
+    return () => {
+      if (rushIntervalRef.current) {
+        clearInterval(rushIntervalRef.current);
+      }
+    };
+  }, []);
 
   return {
     gates,

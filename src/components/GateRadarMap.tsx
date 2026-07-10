@@ -1,8 +1,4 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
+import { memo, useMemo } from 'react';
 import { Gate, Alert } from '../types';
 import { gateCoords, getAdjacentGates, getBezierPath, getSeverityColor } from '../utils/gateUtils';
 
@@ -11,7 +7,45 @@ interface GateRadarMapProps {
   alerts: Alert[];
 }
 
-export default function GateRadarMap({ gates, alerts }: GateRadarMapProps) {
+function GateRadarMap({ gates, alerts }: GateRadarMapProps) {
+  const activeFlowPaths = useMemo(() => {
+    return alerts.filter(alert => !alert.resolved).map((alert) => {
+      const adjacents = getAdjacentGates(alert.gateId);
+      if (adjacents.length === 0) return null;
+      
+      // Find adjacent gate with lowest density
+      let lowestDensity = 999;
+      let targetGateId = adjacents[0];
+      adjacents.forEach(adjId => {
+        const g = gates.find(gate => gate.id === adjId);
+        if (g && g.density < lowestDensity) {
+          lowestDensity = g.density;
+          targetGateId = adjId;
+        }
+      });
+
+      const pathStr = getBezierPath(alert.gateId, targetGateId);
+      const sourceGate = gates.find(g => g.id === alert.gateId);
+      const sourceDensity = sourceGate ? sourceGate.density : 85;
+      const colors = getSeverityColor(sourceDensity);
+
+      return {
+        id: alert.id,
+        pathStr,
+        hex: colors.hex,
+        severity: alert.severity
+      };
+    }).filter((item): item is NonNullable<typeof item> => item !== null);
+  }, [alerts, gates]);
+
+  // Memoize summary metrics to avoid recalculating on every clock tick re-render
+  const stats = useMemo(() => {
+    const densities = gates.map(g => g.density);
+    const maxDensity = densities.length > 0 ? Math.max(...densities) : 0;
+    const avgLoad = densities.length > 0 ? Math.round(densities.reduce((sum, d) => sum + d, 0) / densities.length) : 0;
+    const activePathsCount = alerts.filter(alert => !alert.resolved).length;
+    return { maxDensity, avgLoad, activePathsCount };
+  }, [gates, alerts]);
   return (
     <div className="bg-pitch-dark/80 border border-moss-dark/60 p-5 rounded-lg mb-6 shadow-[0_4px_24px_rgba(0,0,0,0.3)] relative overflow-hidden">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-moss-dark/40 pb-3 mb-4">
@@ -158,46 +192,27 @@ export default function GateRadarMap({ gates, alerts }: GateRadarMapProps) {
           </g>
 
           {/* Active Redirect Flow Vector Paths */}
-          {alerts.filter(alert => !alert.resolved).map((alert) => {
-            const adjacents = getAdjacentGates(alert.gateId);
-            if (adjacents.length === 0) return null;
-            
-            // Find adjacent gate with lowest density
-            let lowestDensity = 999;
-            let targetGateId = adjacents[0];
-            adjacents.forEach(adjId => {
-              const g = gates.find(gate => gate.id === adjId);
-              if (g && g.density < lowestDensity) {
-                lowestDensity = g.density;
-                targetGateId = adjId;
-              }
-            });
-
-            const pathStr = getBezierPath(alert.gateId, targetGateId);
-            const sourceGate = gates.find(g => g.id === alert.gateId);
-            const sourceDensity = sourceGate ? sourceGate.density : 85;
-            const colors = getSeverityColor(sourceDensity);
-
+          {activeFlowPaths.map((flow) => {
             return (
-              <g key={`flow-${alert.id}`}>
+              <g key={`flow-${flow.id}`}>
                 {/* Ambient neon corridor glow underneath */}
                 <path
-                  d={pathStr}
+                  d={flow.pathStr}
                   fill="none"
-                  stroke={colors.hex}
+                  stroke={flow.hex}
                   strokeWidth={10}
                   className="opacity-15"
                   strokeLinecap="round"
                 />
                 {/* Interactive flow dashed path */}
                 <path
-                  d={pathStr}
+                  d={flow.pathStr}
                   fill="none"
-                  stroke={colors.hex}
+                  stroke={flow.hex}
                   strokeWidth={2}
                   className="animate-flow-line"
                   strokeLinecap="round"
-                  filter={alert.severity === 'critical' ? 'url(#glow-critical)' : 'url(#glow-warning)'}
+                  filter={flow.severity === 'critical' ? 'url(#glow-critical)' : 'url(#glow-warning)'}
                 />
               </g>
             );
@@ -215,7 +230,7 @@ export default function GateRadarMap({ gates, alerts }: GateRadarMapProps) {
                 key={`node-${gate.id}`}
                 tabIndex={0}
                 role="button"
-                aria-label={`Gate: ${gate.name}. Density: ${gate.density}%. Status: ${colors.label}.`}
+                aria-label={`Gate: ${gate.name}. Density: ${gate.density}%. Status: ${gate.density < 60 ? 'NOMINAL' : gate.density <= 80 ? 'STEADY SURGE' : 'SURGE BREACH'}.`}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     // Triggers focus confirmation/log
@@ -301,29 +316,31 @@ export default function GateRadarMap({ gates, alerts }: GateRadarMapProps) {
       <div className="mt-4 pt-3 border-t border-moss-dark/30 grid grid-cols-2 sm:grid-cols-4 gap-4 text-[10px] font-mono">
         <div className="bg-pitch-black/50 p-2.5 rounded border border-moss-dark/30">
           <span className="text-sage-soft/50 block text-[8px] uppercase tracking-wider mb-0.5">Perimeter Integrity</span>
-          <span className={`font-bold uppercase tracking-wider ${Math.max(...gates.map(g => g.density)) > 80 ? 'text-rose-400 animate-pulse' : 'text-pale-mint'}`}>
-            {Math.max(...gates.map(g => g.density)) > 80 ? 'TACTICAL REDIRECTS' : 'NOMINAL STATUS'}
+          <span className={`font-bold uppercase tracking-wider ${stats.maxDensity > 80 ? 'text-rose-400 animate-pulse' : 'text-pale-mint'}`}>
+            {stats.maxDensity > 80 ? 'TACTICAL REDIRECTS' : 'NOMINAL STATUS'}
           </span>
         </div>
         <div className="bg-pitch-black/50 p-2.5 rounded border border-moss-dark/30">
           <span className="text-sage-soft/50 block text-[8px] uppercase tracking-wider mb-0.5">Average Sector Load</span>
           <span className="text-pale-mint font-bold">
-            {Math.round(gates.reduce((sum, g) => sum + g.density, 0) / gates.length)}% Capacity
+            {stats.avgLoad}% Capacity
           </span>
         </div>
         <div className="bg-pitch-black/50 p-2.5 rounded border border-moss-dark/30">
           <span className="text-sage-soft/50 block text-[8px] uppercase tracking-wider mb-0.5">Active Vector Curvature</span>
-          <span className={`font-bold ${alerts.filter(alert => !alert.resolved).length > 0 ? 'text-amber-400' : 'text-sage-soft/50'}`}>
-            {alerts.filter(alert => !alert.resolved).length} Active Path{alerts.filter(alert => !alert.resolved).length !== 1 ? 's' : ''}
+          <span className={`font-bold ${stats.activePathsCount > 0 ? 'text-amber-400' : 'text-sage-soft/50'}`}>
+            {stats.activePathsCount} Active Path{stats.activePathsCount !== 1 ? 's' : ''}
           </span>
         </div>
         <div className="bg-pitch-black/50 p-2.5 rounded border border-moss-dark/30">
           <span className="text-sage-soft/50 block text-[8px] uppercase tracking-wider mb-0.5">Peak Gate Pressure</span>
-          <span className={`font-bold ${Math.max(...gates.map(g => g.density)) > 80 ? 'text-rose-400 animate-pulse' : 'text-pale-mint'}`}>
-            {Math.max(...gates.map(g => g.density))}%
+          <span className={`font-bold ${stats.maxDensity > 80 ? 'text-rose-400 animate-pulse' : 'text-pale-mint'}`}>
+            {stats.maxDensity}%
           </span>
         </div>
       </div>
     </div>
   );
 }
+
+export default memo(GateRadarMap);

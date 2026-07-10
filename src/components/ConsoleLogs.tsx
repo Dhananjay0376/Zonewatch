@@ -3,13 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { memo } from 'react';
 import { Terminal } from 'lucide-react';
 
 interface ConsoleLogsProps {
-  systemLogs: string[];
+  systemLogs: { id: string; text: string }[];
 }
 
-export default function ConsoleLogs({ systemLogs }: ConsoleLogsProps) {
+function ConsoleLogs({ systemLogs }: ConsoleLogsProps) {
   return (
     <div className="bg-pitch-dark/40 border border-moss-dark/60 rounded-xl p-5 flex flex-col justify-between flex-1 min-h-[220px]">
       <div>
@@ -22,9 +23,9 @@ export default function ConsoleLogs({ systemLogs }: ConsoleLogsProps) {
           aria-live="polite"
           className="font-mono text-[10px] text-sage-soft space-y-2 h-[180px] overflow-y-auto bg-pitch-black p-3 rounded border border-moss-dark/40"
         >
-          {systemLogs.map((log, index) => (
-            <div key={index} className="leading-relaxed border-b border-moss-dark/20 pb-1 last:border-0">
-              {log}
+          {systemLogs.map((log) => (
+            <div key={log.id} className="leading-relaxed border-b border-moss-dark/20 pb-1 last:border-0">
+              {log.text}
             </div>
           ))}
         </div>
@@ -38,3 +39,5 @@ export default function ConsoleLogs({ systemLogs }: ConsoleLogsProps) {
     </div>
   );
 }
+
+export default memo(ConsoleLogs);

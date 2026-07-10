@@ -20,12 +20,14 @@ export default defineConfig({
     restoreMocks: true,
     mockReset: true,
     testTimeout: 15000,
-    pool: 'threads',
-    threads: {
-      singleThread: true,
-    },
-    forks: {
-      singleFork: true,
+    poolOptions: {
+      threads: {
+        singleThread: true,
+      },
+      forks: {
+        singleFork: true,
+        execArgv: ['--max-old-space-size=4096'],
+      },
     },
   },
 });

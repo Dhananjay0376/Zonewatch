@@ -348,11 +348,22 @@ export function useAcousticSensor({
     // Trigger translation callback with the voice and tone attributes combined
     onAcousticCaptureCompleted(phraseToAnalyze, compiledTone);
   }, [addLog, onAcousticCaptureCompleted, setSupporterPhrase]);
-
   useEffect(() => {
     return () => {
       if (simulatedAudioIntervalRef.current) {
         clearInterval(simulatedAudioIntervalRef.current);
+      }
+      if (audioStreamRef.current) {
+        audioStreamRef.current.getTracks().forEach(track => track.stop());
+        audioStreamRef.current = null;
+      }
+      if (audioContextRef.current) {
+        try {
+          audioContextRef.current.close();
+        } catch (e) {
+          console.warn(e);
+        }
+        audioContextRef.current = null;
       }
     };
   }, []);

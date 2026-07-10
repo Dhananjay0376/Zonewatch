@@ -4,6 +4,7 @@
  */
 
 import { motion, AnimatePresence } from 'motion/react';
+import { memo } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import {
   Activity,
@@ -41,7 +42,7 @@ interface TranslationConsoleProps {
   addLog: (msg: string) => void;
 }
 
-export default function TranslationConsole({
+function TranslationConsole({
   speechInputLang,
   setSpeechInputLang,
   supporterPhrase,
@@ -590,3 +591,5 @@ export default function TranslationConsole({
     </div>
   );
 }
+
+export default memo(TranslationConsole);
