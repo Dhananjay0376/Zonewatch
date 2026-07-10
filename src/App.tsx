@@ -14,13 +14,10 @@ import {
   Info,
   Database,
   RefreshCw,
-  AlertTriangle,
-  ChevronRight,
-  ExternalLink,
   AlertOctagon,
   Languages
 } from 'lucide-react';
-import { Alert } from './types';
+import type { Alert, ParseMockFileResponse, ParsedGate, TranslationResult, VoiceToneResult } from './types';
 
 // Custom Hooks
 import { useStadiumGates } from './hooks/useStadiumGates';
@@ -56,8 +53,6 @@ export default function App() {
     setGateHistory,
     alerts,
     setAlerts,
-    pendingRequests,
-    isSimulating,
     isRushing,
     rushingStep,
     handleModifyDensity,
@@ -74,13 +69,13 @@ export default function App() {
   const [speechInputLang, setSpeechInputLang] = useState<string>('en-US');
   const [supporterPhrase, setSupporterPhrase] = useState<string>('');
   const [isTranslating, setIsTranslating] = useState<boolean>(false);
-  const [translationResult, setTranslationResult] = useState<any>(null);
+  const [translationResult, setTranslationResult] = useState<TranslationResult | null>(null);
   const [errorTranslate, setErrorTranslate] = useState<string | null>(null);
 
   // Speech and Audio Analysis Logic
-  const onAcousticCaptureCompleted = useCallback((phrase: string, toneObj: any) => {
+  const onAcousticCaptureCompleted = (phrase: string, toneObj: VoiceToneResult) => {
     handleTranslateSupporter(phrase, toneObj);
-  }, []);
+  };
 
   const {
     isListening,
@@ -174,14 +169,14 @@ export default function App() {
           throw new Error(errText || `Server returned status code ${response.status}`);
         }
 
-        const data = await response.json();
+        const data = await response.json() as ParseMockFileResponse;
         
         if (data.success && data.gates) {
           setGates(data.gates);
           
           // Reconstruct trends history window
           const newHistory: Record<string, number[]> = {};
-          data.gates.forEach((g: any) => {
+          data.gates.forEach((g: ParsedGate) => {
             newHistory[g.id] = g.history || [g.density, g.density, g.density, g.density, g.density];
           });
           setGateHistory(prev => ({ ...prev, ...newHistory }));
@@ -195,10 +190,11 @@ export default function App() {
         } else {
           throw new Error(data.error || "Failed to extract valid stadium gates.");
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Upload error:", err);
-        setUploadErrorMessage(err.message || "An error occurred while uploading and parsing your file.");
-        addLog(`CRITICAL: File parser error: ${err.message || "Unknown error"}`);
+        const errorMessage = err instanceof Error ? err.message : "An error occurred while uploading and parsing your file.";
+        setUploadErrorMessage(errorMessage);
+        addLog(`CRITICAL: File parser error: ${errorMessage}`);
       } finally {
         setIsUploadingFile(false);
       }
@@ -230,7 +226,7 @@ export default function App() {
   };
 
   // Submit supporter vocal phrase for language translation & severity triage
-  const handleTranslateSupporter = async (phraseToSubmit?: string, vocalToneOverride?: any) => {
+  async function handleTranslateSupporter(phraseToSubmit?: string, vocalToneOverride?: VoiceToneResult) {
     const rawPhrase = phraseToSubmit !== undefined ? phraseToSubmit : supporterPhrase;
     const activePhrase = sanitizeInput(rawPhrase);
     if (!activePhrase) return;
@@ -258,12 +254,12 @@ export default function App() {
         throw new Error(`Translation service returned status code ${response.status}`);
       }
 
-      const data = await response.json();
+      const data = await response.json() as TranslationResult;
       setTranslationResult(data);
       addLog(`Detected: ${data.originalLanguage} | Triage: ${data.urgencyTag.toUpperCase()}`);
 
       if (data.detectedTone) {
-        setVoiceToneResult((prev: any) => {
+        setVoiceToneResult((prev) => {
           if (prev) {
             return {
               ...prev,
@@ -282,19 +278,21 @@ export default function App() {
           }
         });
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setErrorTranslate(err.message || 'Failed to analyze phrase');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to analyze phrase';
+      setErrorTranslate(errorMessage);
       addLog(`ERROR: Supporter translation copilot failed. Engaging local translation heuristic fallback.`);
       
       const lower = activePhrase.toLowerCase().trim();
-      let fallbackResult: any = {
+      let fallbackResult: Omit<TranslationResult, 'detectedTone'> & { detectedTone?: string } = {
         originalLanguage: "Spanish",
         translatedText: activePhrase,
         urgencyTag: "Casual",
         classificationReason: "Supporter asking for standard directions or general help.",
         suggestedResponse: "Hola, ¿cómo puedo ayudarte hoy?",
         suggestedResponseEnglish: "Hello, how can I help you today?",
+        detectedTone: "Calm & Conversational",
         isLocalFallback: true
       };
 
@@ -308,6 +306,7 @@ export default function App() {
           classificationReason: "Explicit mention of cardiac emergency symptoms or urgent medical distress.",
           suggestedResponse: "Por favor, quédese aquí tranquilo. Estoy llamando a nuestro equipo médico de inmediato para que lo asistan. Todo va a estar bien.",
           suggestedResponseEnglish: "Please, stay here and remain calm. I am calling our medical response team right now to assist you. Everything is going to be okay.",
+          detectedTone: "Panic-stricken & Distressed",
           isLocalFallback: true
         };
       } else if (lower.includes("silla") || lower.includes("ruedas") || lower.includes("discapacidad") || lower.includes("rampa") || lower.includes("ascensor")) {
@@ -318,6 +317,7 @@ export default function App() {
           classificationReason: "Inquiry regarding wheelchair access or accessibility services.",
           suggestedResponse: "Contamos con una rampa de acceso y un ascensor a la vuelta de esta esquina, a la derecha. Un voluntario lo puede acompañar si gusta.",
           suggestedResponseEnglish: "We have an accessibility ramp and elevator just around this corner, to the right. A volunteer can accompany you if you'd like.",
+          detectedTone: "Concerned & Seeking Assistance",
           isLocalFallback: true
         };
       } else if (lower.includes("toilet") || lower.includes("toilettes") || lower.includes("toiletette") || lower.includes("perdido") || lower.includes("puerta") || lower.includes("boleto") || lower.includes("baño") || lower.includes("agua")) {
@@ -335,6 +335,7 @@ export default function App() {
           suggestedResponseEnglish: isToiletFrench 
             ? "The nearest restrooms are located right next to Gate D, about thirty meters from here." 
             : "The restrooms and water stations are straight down this hallway about 50 meters.",
+          detectedTone: "Calm & Conversational",
           isLocalFallback: true
         };
       } else if (lower.includes("hilfe") || lower.includes("tochter") || lower.includes("luft") || lower.includes("sanit") || lower.includes("arzt")) {
@@ -345,6 +346,7 @@ export default function App() {
           classificationReason: "Urgent German request regarding breathing difficulty and emergency medical team support.",
           suggestedResponse: "Bitte bleiben Sie ganz ruhig hier bei mir. Ich habe soeben den Sanitätsdienst alarmiert, sie sind sofort auf dem Weg zu uns. Wir helfen Ihnen!",
           suggestedResponseEnglish: "Please remain calm here with me. I have just alerted the medical service, they are on their way to us immediately. We will help you!",
+          detectedTone: "Panic-stricken & Distressed",
           isLocalFallback: true
         };
       } else if (lower.includes("車椅子") || lower.includes("エレベーター") || lower.includes("えれべーたー") || lower.includes("くるまいす")) {
@@ -355,6 +357,7 @@ export default function App() {
           classificationReason: "Accessibility request for wheelchair lift/elevator access in Japanese.",
           suggestedResponse: "車椅子用のエレベーターは、この角を右に曲がってすぐのところにございます。よろしければ、スタッフ que ご案内いたします。",
           suggestedResponseEnglish: "The elevator for wheelchair users is located just around this corner on the right. If you'd like, a staff member can guide you there.",
+          detectedTone: "Concerned & Seeking Assistance",
           isLocalFallback: true
         };
       } else if (lower.includes("मदद") || lower.includes("पानी") || lower.includes("शौचालय") || lower.includes("डॉक्टर") || lower.includes("madad") || lower.includes("paani") || lower.includes("shauchalay")) {
@@ -392,7 +395,7 @@ export default function App() {
         fallbackTone = "Concerned & Seeking Assistance (Offline Fallback)";
       }
 
-      setVoiceToneResult((prev: any) => {
+      setVoiceToneResult((prev) => {
         if (prev) {
           return { ...prev, detectedTone: fallbackTone };
         } else {
@@ -408,11 +411,11 @@ export default function App() {
         }
       });
 
-      setTranslationResult(fallbackResult);
+      setTranslationResult(fallbackResult as TranslationResult);
     } finally {
       setIsTranslating(false);
     }
-  };
+  }
 
   // Trigger simulated voice announcers
   const triggerSimulatedBroadcast = () => {
@@ -480,7 +483,7 @@ export default function App() {
         }));
 
         addLog(`Gemini built high-clarity spoken megaphone announcements in 3 languages.`);
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Gemini script generation error:", err);
         addLog(`Gemini busy/unavailable. Restoring high-quality default spoken scripts.`);
 
@@ -581,7 +584,7 @@ export default function App() {
           <div>
             <h1 className="text-base font-black tracking-[0.25em] uppercase flex items-center gap-2 text-pale-mint font-display">
               Zonewatch 
-              <span className="text-sage-soft/50 font-normal hidden sm:inline font-sans text-xs tracking-widest">// Volunteer Copilot</span>
+              <span className="text-sage-soft/50 font-normal hidden sm:inline font-sans text-xs tracking-widest">{"// Volunteer Copilot"}</span>
             </h1>
             <div className="flex items-center space-x-2">
               <span className="block w-1.5 h-1.5 rounded-full bg-pale-mint animate-pulse"></span>

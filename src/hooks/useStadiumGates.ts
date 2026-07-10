@@ -133,7 +133,7 @@ export function useStadiumGates({ addLog }: StadiumGatesProps) {
       }));
 
       addLog(`Gemini Copilot generated actionable route plan for ${targetGate.name}.`);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       addLog(`CRITICAL: Gemini query failed for ${targetGate.name}. Using fallback directives.`);
       

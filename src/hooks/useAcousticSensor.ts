@@ -4,14 +4,51 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import type { VoiceToneResult } from '../types';
 import { generateRandomVolumeBars } from '../utils/math';
+
+interface SpeechRecognitionAlternativeLike {
+  transcript: string;
+}
+
+interface SpeechRecognitionResultLike extends ArrayLike<SpeechRecognitionAlternativeLike> {
+  isFinal?: boolean;
+}
+
+interface SpeechRecognitionEventLike extends Event {
+  results: ArrayLike<SpeechRecognitionResultLike>;
+}
+
+interface SpeechRecognitionErrorEventLike extends Event {
+  error: string;
+}
+
+interface SpeechRecognitionInstance {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
+  start: () => void;
+  stop: () => void;
+}
+
+interface SpeechRecognitionConstructor {
+  new (): SpeechRecognitionInstance;
+}
+
+interface WindowWithSpeechAPIs extends Window {
+  SpeechRecognition?: SpeechRecognitionConstructor;
+  webkitSpeechRecognition?: SpeechRecognitionConstructor;
+  webkitAudioContext?: typeof AudioContext;
+}
 
 interface AcousticSensorProps {
   speechInputLang: string;
   supporterPhrase: string;
   setSupporterPhrase: (phrase: string) => void;
   addLog: (msg: string) => void;
-  onAcousticCaptureCompleted: (phrase: string, compiledTone: any) => void;
+  onAcousticCaptureCompleted: (phrase: string, compiledTone: VoiceToneResult) => void;
 }
 
 export function useAcousticSensor({
@@ -25,22 +62,13 @@ export function useAcousticSensor({
   const [listeningTimer, setListeningTimer] = useState<number>(0);
   const [liveVolumeBars, setLiveVolumeBars] = useState<number[]>([10, 15, 8, 12, 10, 16, 12, 10, 5, 8]);
   const [micPermissionError, setMicPermissionError] = useState<string | null>(null);
-  const [voiceToneResult, setVoiceToneResult] = useState<{
-    detectedTone: string;
-    pitch: string;
-    speed: string;
-    volume: string;
-    confidence: number;
-    dbLevel: number;
-    hzLevel: number;
-    isSimulated?: boolean;
-  } | null>(null);
+  const [voiceToneResult, setVoiceToneResult] = useState<VoiceToneResult | null>(null);
 
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioStreamRef = useRef<MediaStream | null>(null);
   const audioAnalyserRef = useRef<AnalyserNode | null>(null);
-  const simulatedAudioIntervalRef = useRef<any>(null);
+  const simulatedAudioIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const transcribedTextRef = useRef<string>("");
 
   const speechInputLangRef = useRef<string>(speechInputLang);
@@ -81,7 +109,8 @@ export function useAcousticSensor({
     addLog(`Voice & Tone microphone listener activated [Locale: ${speechInputLangRef.current}]. Speak clearly...`);
 
     // Try starting speech recognition
-    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const speechWindow = window as WindowWithSpeechAPIs;
+    const SpeechRecognitionAPI = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
     if (SpeechRecognitionAPI) {
       try {
         const recognition = new SpeechRecognitionAPI();
@@ -89,7 +118,7 @@ export function useAcousticSensor({
         recognition.interimResults = true;
         recognition.lang = speechInputLangRef.current;
         
-        recognition.onresult = (event: any) => {
+        recognition.onresult = (event: SpeechRecognitionEventLike) => {
           let currentText = "";
           for (let i = 0; i < event.results.length; i++) {
             currentText += event.results[i][0].transcript;
@@ -101,7 +130,7 @@ export function useAcousticSensor({
           }
         };
 
-        recognition.onerror = (e: any) => {
+        recognition.onerror = (e: SpeechRecognitionErrorEventLike) => {
           console.warn("Speech recognition warning/error:", e.error);
           if (e.error === 'not-allowed') {
             setMicPermissionError("Microphone access denied. Please click the microphone icon in your browser's address bar to allow permissions.");
@@ -124,7 +153,7 @@ export function useAcousticSensor({
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         audioStreamRef.current = stream;
         
-        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        const AudioCtx = window.AudioContext || speechWindow.webkitAudioContext;
         if (AudioCtx) {
           const ctx = new AudioCtx();
           audioContextRef.current = ctx;
@@ -152,7 +181,7 @@ export function useAcousticSensor({
           };
           requestAnimationFrame(updateSpectrum);
         }
-      } catch (micErr) {
+      } catch {
         console.warn("Microphone access declined or blocked by browser/iframe restrictions. Operating in high-fidelity simulation mode.");
         setMicPermissionError("Microphone permission was not granted or was blocked by standard iframe security policies.");
         addLog("Sandboxed browser detected. Active microphone bypass engaged.");
@@ -302,7 +331,7 @@ export function useAcousticSensor({
     }
     audioAnalyserRef.current = null;
 
-    const compiledTone = {
+    const compiledTone: VoiceToneResult = {
       detectedTone: "Analyzing via Gemini...",
       pitch: pitchVal,
       speed: speedVal,

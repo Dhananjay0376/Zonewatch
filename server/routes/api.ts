@@ -131,7 +131,8 @@ Respond ONLY with a JSON object containing these exact 3 fields:
 
 // 3. API Route for real-time supporter translation, triage classification, and local response generation
 router.post("/translate", async (req, res) => {
-  let { phrase, vocalTone } = req.body;
+  let { phrase } = req.body;
+  const vocalTone = req.body.vocalTone;
   try {
     if (!phrase || typeof phrase !== "string") {
       return res.status(400).json({ error: "Missing required supporter voice phrase" });

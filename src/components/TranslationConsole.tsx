@@ -4,6 +4,7 @@
  */
 
 import { motion, AnimatePresence } from 'motion/react';
+import type { Dispatch, SetStateAction } from 'react';
 import {
   Activity,
   ChevronRight,
@@ -16,6 +17,7 @@ import {
   Volume2,
   Copy
 } from 'lucide-react';
+import type { TranslationResult, VoiceToneResult } from '../types';
 
 interface TranslationConsoleProps {
   speechInputLang: string;
@@ -23,17 +25,17 @@ interface TranslationConsoleProps {
   supporterPhrase: string;
   setSupporterPhrase: (phrase: string) => void;
   isTranslating: boolean;
-  translationResult: any;
+  translationResult: TranslationResult | null;
   errorTranslate: string | null;
-  voiceToneResult: any;
-  setVoiceToneResult: (result: any) => void;
+  voiceToneResult: VoiceToneResult | null;
+  setVoiceToneResult: Dispatch<SetStateAction<VoiceToneResult | null>>;
   micPermissionError: string | null;
   isListening: boolean;
   listeningTimer: number;
   liveVolumeBars: number[];
   startVoiceListening: () => void;
   stopVoiceListening: () => void;
-  handleTranslateSupporter: (phraseToSubmit?: string, toneObj?: any) => void;
+  handleTranslateSupporter: (phraseToSubmit?: string, toneObj?: VoiceToneResult) => void;
   playAnnouncement: (text: string, langNameOrCode?: string) => void;
   speakingText: string | null;
   addLog: (msg: string) => void;
@@ -120,7 +122,7 @@ export default function TranslationConsole({
                 <span className="text-sm select-none">{preset.flag}</span>
                 <div className="flex-1 min-w-0">
                   <div className="font-mono text-[9px] text-sage-green group-hover:text-pale-mint transition-colors uppercase tracking-tight font-bold">{preset.lang}</div>
-                  <div className="truncate text-sage-soft/75 italic mt-0.5">"{preset.text}"</div>
+                  <div className="truncate text-sage-soft/75 italic mt-0.5">&quot;{preset.text}&quot;</div>
                 </div>
                 <ChevronRight className="w-3.5 h-3.5 text-sage-green group-hover:text-pale-mint transition-colors shrink-0 mt-2" />
               </button>
@@ -208,7 +210,7 @@ export default function TranslationConsole({
                     {micPermissionError}
                   </p>
                   <p className="text-[8.5px] text-sage-soft/60 italic pt-0.5">
-                    Type in the box below or use the "Panic Simulation" button to test with real-time audio analysis!
+                    Type in the box below or use the &quot;Panic Simulation&quot; button to test with real-time audio analysis!
                   </p>
                 </div>
               )}
@@ -237,7 +239,7 @@ export default function TranslationConsole({
                       dbLevel: 85,
                       hzLevel: 380,
                       isSimulated: true
-                    };
+                    } as VoiceToneResult;
                     setVoiceToneResult(mockTone);
                     handleTranslateSupporter(panicText, mockTone);
                   }}
@@ -499,7 +501,7 @@ export default function TranslationConsole({
                   <div className="flex-1">
                     <span className="font-mono text-sage-soft/60 uppercase font-bold block">English Translation (Meaning)</span>
                     <p className="text-sage-soft italic mt-0.5">
-                      "{translationResult.suggestedResponseEnglish}"
+                      &quot;{translationResult.suggestedResponseEnglish}&quot;
                     </p>
                   </div>
                   <button
@@ -568,7 +570,7 @@ export default function TranslationConsole({
               <div>
                 <h4 className="text-xs font-bold text-pale-mint uppercase tracking-wide font-display">Ready for Supporter Inquiry</h4>
                 <p className="text-[10px] text-sage-soft/80 mt-1 max-w-xs leading-normal font-sans font-semibold">
-                  Select an instant multilingual preset simulation above or type a supporter's phrase to witness real-time language detection, urgency classification, and translation.
+                  Select an instant multilingual preset simulation above or type a supporter&apos;s phrase to witness real-time language detection, urgency classification, and translation.
                 </p>
               </div>
             </div>
