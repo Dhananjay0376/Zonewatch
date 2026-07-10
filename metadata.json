@@ -1,0 +1,6 @@
+{
+  "name": "Zonewatch",
+  "description": "Volunteer Copilot for FIFA World Cup 2026 stadium operations — managing gate density, real-time reasoning, and fan translations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

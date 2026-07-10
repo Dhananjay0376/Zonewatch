@@ -1,0 +1,33 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", var(--font-sans);
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* Custom Stadium Moss Green & Pale Mint Palette */
+  --color-pitch-dark: #0F2A1D;    /* Deep Forest/Pitch Green */
+  --color-moss-deep: #1b3829;     /* Deep Moss container base */
+  --color-moss-dark: #375534;     /* Medium Moss Green */
+  --color-sage-green: #6B9071;    /* Sage Accent Green */
+  --color-sage-soft: #AEC3B0;     /* Soft grayish-mint text/borders */
+  --color-pale-mint: #E3EED4;     /* Crisp Pale Mint highlight */
+  --color-pitch-black: #07160F;   /* Ultra-dark forest pitch black background */
+}
+
+/* Custom gorgeous scrollbar styled for our grass palette */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0F2A1D;
+}
+::-webkit-scrollbar-thumb {
+  background: #375534;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #6B9071;
+}
