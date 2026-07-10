@@ -211,7 +211,19 @@ export default function GateRadarMap({ gates, alerts }: GateRadarMapProps) {
             const isCongested = gate.density > 80;
 
             return (
-              <g key={`node-${gate.id}`}>
+              <g 
+                key={`node-${gate.id}`}
+                tabIndex={0}
+                role="button"
+                aria-label={`Gate: ${gate.name}. Density: ${gate.density}%. Status: ${colors.label}.`}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    // Triggers focus confirmation/log
+                    console.log(`Focused ${gate.name} telemetry: ${gate.density}%`);
+                  }
+                }}
+                className="focus:outline-none"
+              >
                 {/* Outer Pulsing Radar Ring */}
                 <circle
                   cx={coord.x}
@@ -222,6 +234,7 @@ export default function GateRadarMap({ gates, alerts }: GateRadarMapProps) {
                   strokeWidth={1}
                   className="animate-pulse"
                   style={{ opacity: 0.35, animationDuration: isCongested ? '1.5s' : '3s' }}
+                  aria-hidden="true"
                 />
 
                 {/* Interactive glow backing */}
@@ -234,6 +247,7 @@ export default function GateRadarMap({ gates, alerts }: GateRadarMapProps) {
                   stroke={colors.hex}
                   strokeWidth={1}
                   opacity={0.8}
+                  aria-hidden="true"
                 />
 
                 {/* Solid Inner Terminal Core */}
@@ -242,10 +256,11 @@ export default function GateRadarMap({ gates, alerts }: GateRadarMapProps) {
                   cy={coord.y}
                   r={4.5}
                   fill={colors.hex}
+                  aria-hidden="true"
                 />
 
                 {/* Beautiful HUD label */}
-                <g className="select-none pointer-events-none">
+                <g className="select-none pointer-events-none" aria-hidden="true">
                   <rect
                     x={coord.labelX - 32}
                     y={coord.labelY - 13}

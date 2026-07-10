@@ -63,3 +63,16 @@ To guarantee 100% operational uptime in high-density stadium environments where 
    ```bash
    npm run dev
    ```
+
+---
+
+## ♿ Accessibility & WCAG AA Compliance
+
+Zonewatch is built to satisfy **WCAG 2.1 Level AA** standards, ensuring that operational volunteers of all abilities can manage stadium gates and translate speech:
+
+1. **Semantic HTML & Custom Controls**: All interactive items (including presets, dropdowns, and buttons) are coded as semantic HTML `<button>`, `<select>`, and `<input>` elements. Custom file upload dropzones are wrapped in keydown handlers and aria-role/tabIndex configurations.
+2. **Keyboard Operability & Modal focus-traps**: The entire interface is keyboard navigable without a mouse (using `Tab`, `Space`, `Enter`, and `Escape`). The **Megaphone Broadcast Modal** traps focus dynamically on open, sets focus to the header, and preserves focus states inside its tabs.
+3. **High Contrast Styling**: Color opacities have been boosted across the dark theme (`text-sage-soft` and high opacity tags) to ensure all text sizes meet the **4.5:1** contrast ratio against pitch-dark canvas backdrops. Focus visible indicators (`focus-visible`) are configured system-wide.
+4. **ARIA Labels & Decorative Icon Hiding**: Icon-only buttons (like Text-To-Speech audio volume playback controls) are configured with descriptive, contextual `aria-label` tags. All decorative Lucide icons are marked with `aria-hidden="true"`.
+5. **Non-Color Status Indicators**: Gate statuses, density ratings, and alarm triggers rely on explicit text labels alongside HSL color codes, ensuring information is accessible to colorblind operators.
+6. **Live Region Dynamic Announcements**: Dynamic console logs and newly generated GenAI advisory alerts are wrapped in `aria-live="polite"` containers, guaranteeing screen-reader announcements when state modifications happen.

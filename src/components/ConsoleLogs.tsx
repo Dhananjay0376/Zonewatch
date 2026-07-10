@@ -18,7 +18,10 @@ export default function ConsoleLogs({ systemLogs }: ConsoleLogsProps) {
           Specialist Console Logs
         </h3>
         
-        <div className="font-mono text-[10px] text-sage-soft space-y-2 h-[180px] overflow-y-auto bg-pitch-black p-3 rounded border border-moss-dark/40">
+        <div 
+          aria-live="polite"
+          className="font-mono text-[10px] text-sage-soft space-y-2 h-[180px] overflow-y-auto bg-pitch-black p-3 rounded border border-moss-dark/40"
+        >
           {systemLogs.map((log, index) => (
             <div key={index} className="leading-relaxed border-b border-moss-dark/20 pb-1 last:border-0">
               {log}

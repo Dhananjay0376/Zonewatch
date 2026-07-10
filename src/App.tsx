@@ -716,7 +716,16 @@ export default function App() {
                     handleFileUpload(files[0]);
                   }
                 }}
-                className={`border border-dashed p-6 rounded-lg transition-all text-center flex flex-col items-center justify-center cursor-pointer ${
+                tabIndex={0}
+                role="button"
+                aria-label="Upload custom mock telemetry file (CSV or PDF)"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    const input = document.getElementById("mock-file-input");
+                    if (input) input.click();
+                  }
+                }}
+                className={`border border-dashed p-6 rounded-lg transition-all text-center flex flex-col items-center justify-center cursor-pointer focus:ring-2 focus:ring-pale-mint focus:outline-none ${
                   dragOver
                     ? "border-pale-mint bg-moss-deep/30 shadow-[0_0_15px_rgba(227,238,212,0.1)]"
                     : "border-moss-dark bg-moss-deep/20 hover:border-sage-green hover:bg-moss-deep/40"
@@ -868,18 +877,20 @@ export default function App() {
                     <div className="flex gap-2 relative z-10 pt-2 border-t border-moss-dark/20">
                       <button
                         onClick={() => handleModifyDensity(gate.id, -5)}
+                        aria-label={`Decrease ${gate.name} density by 5%`}
                         className="flex-1 bg-pitch-black hover:bg-moss-deep border border-moss-dark text-sage-soft hover:text-pale-mint py-1 rounded text-[9.5px] font-mono font-bold uppercase transition-all flex items-center justify-center gap-0.5 cursor-pointer"
                         title="Reduce crowd density manually"
                       >
-                        <Minus className="w-2.5 h-2.5" />
+                        <Minus className="w-2.5 h-2.5" aria-hidden="true" />
                         5%
                       </button>
                       <button
                         onClick={() => handleModifyDensity(gate.id, 5)}
+                        aria-label={`Increase ${gate.name} density by 5%`}
                         className="flex-1 bg-pitch-black hover:bg-moss-deep border border-moss-dark text-sage-soft hover:text-pale-mint py-1 rounded text-[9.5px] font-mono font-bold uppercase transition-all flex items-center justify-center gap-0.5 cursor-pointer"
                         title="Increase crowd density manually"
                       >
-                        <Plus className="w-2.5 h-2.5" />
+                        <Plus className="w-2.5 h-2.5" aria-hidden="true" />
                         5%
                       </button>
                     </div>
@@ -916,7 +927,7 @@ export default function App() {
               </span>
             </div>
 
-            <div className="p-5">
+            <div className="p-5" aria-live="polite">
               {alerts.length === 0 ? (
                 <div className="text-center py-10 border border-dashed border-moss-dark/30 rounded-lg bg-pitch-black/30">
                   <div className="relative w-12 h-12 mx-auto flex items-center justify-center mb-3">

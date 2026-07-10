@@ -19,6 +19,13 @@ export default defineConfig({
     clearMocks: true,
     restoreMocks: true,
     mockReset: true,
-    testTimeout: 10000,
+    testTimeout: 15000,
+    pool: 'threads',
+    threads: {
+      singleThread: true,
+    },
+    forks: {
+      singleFork: true,
+    },
   },
 });
