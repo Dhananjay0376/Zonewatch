@@ -121,18 +121,21 @@ function MegaphoneControl({
             <svg viewBox="0 0 60 60" className="w-full h-full text-pale-mint select-none pointer-events-none" aria-hidden="true">
               <style>{`
                 @keyframes soundwave {
-                  0% { r: 10px; opacity: 0; }
+                  0% { transform: scale(1); opacity: 0; }
                   50% { opacity: 0.8; }
-                  100% { r: 26px; opacity: 0; }
+                  100% { transform: scale(2.6); opacity: 0; }
                 }
                 .broadcast-wave-1 {
+                  transform-origin: 38px 30px;
                   animation: soundwave 1.8s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
                 }
                 .broadcast-wave-2 {
+                  transform-origin: 38px 30px;
                   animation: soundwave 1.8s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
                   animation-delay: 0.6s;
                 }
                 .broadcast-wave-3 {
+                  transform-origin: 38px 30px;
                   animation: soundwave 1.8s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
                   animation-delay: 1.2s;
                 }
