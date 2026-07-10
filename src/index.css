@@ -6,14 +6,18 @@
   --font-display: "Space Grotesk", var(--font-sans);
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 
-  /* Custom Stadium Moss Green & Pale Mint Palette */
-  --color-pitch-dark: #0F2A1D;    /* Deep Forest/Pitch Green */
-  --color-moss-deep: #1b3829;     /* Deep Moss container base */
-  --color-moss-dark: #375534;     /* Medium Moss Green */
-  --color-sage-green: #6B9071;    /* Sage Accent Green */
-  --color-sage-soft: #AEC3B0;     /* Soft grayish-mint text/borders */
-  --color-pale-mint: #E3EED4;     /* Crisp Pale Mint highlight */
-  --color-pitch-black: #07160F;   /* Ultra-dark forest pitch black background */
+  /* Upgraded Carbon Stadium Palette: breaking the jungle green monotony */
+  --color-pitch-dark: #121815;    /* Premium Carbon Dark Steel */
+  --color-moss-deep: #18201C;     /* Dark Charcoal-Iron Core */
+  --color-moss-dark: #2B3830;     /* Muted Steel Olive / Tech Borders */
+  --color-sage-green: #5C7764;    /* Sleek Slate Sage Accent */
+  --color-sage-soft: #A2B2A7;     /* Tech Silver-Sage for clean contrast */
+  --color-pale-mint: #E3EED4;     /* Brilliant Crisp Pale Mint Highlight */
+  --color-pitch-black: #080A09;   /* High-end Obsidian Black canvas */
+  
+  /* Brand-new Copilot Electric Blue and Accent colors for visual depth */
+  --color-copilot-blue: #00E1D9;  /* Dynamic Neon Cyan / Intel layer */
+  --color-laser-blue: #38BDF8;    /* Luminous sky blue for logs & tags */
 }
 
 /* Custom gorgeous scrollbar styled for our grass palette */
@@ -22,12 +26,12 @@
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0F2A1D;
+  background: var(--color-pitch-black);
 }
 ::-webkit-scrollbar-thumb {
-  background: #375534;
+  background: var(--color-moss-dark);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #6B9071;
+  background: var(--color-sage-green);
 }
