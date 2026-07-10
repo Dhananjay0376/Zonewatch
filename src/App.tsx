@@ -594,7 +594,7 @@ export default function App() {
           <div>
             <h1 className="text-base font-black tracking-[0.25em] uppercase flex items-center gap-2 text-pale-mint font-display">
               Zonewatch 
-              <span className="text-sage-soft/50 font-normal hidden sm:inline font-sans text-xs tracking-widest">{"// Volunteer Copilot"}</span>
+              <span className="text-sage-soft font-normal hidden sm:inline font-sans text-xs tracking-widest">{"// Volunteer Copilot"}</span>
             </h1>
             <div className="flex items-center space-x-2">
               <span className="block w-1.5 h-1.5 rounded-full bg-pale-mint animate-pulse"></span>
@@ -605,13 +605,13 @@ export default function App() {
 
         <div className="flex items-center space-x-4 md:space-x-8">
           <div className="text-right">
-            <p className="text-[9px] font-mono text-sage-soft/60 uppercase tracking-widest font-semibold">Assigned Sector</p>
+            <p className="text-[9px] font-mono text-sage-soft uppercase tracking-widest font-semibold">Assigned Sector</p>
             <p className="text-xs sm:text-sm font-display font-bold text-pale-mint tracking-wide">GATES B — E (LEVEL 1)</p>
           </div>
           <div className="h-10 w-[1px] bg-moss-dark/40"></div>
           <div className="text-right">
-            <p className="text-[9px] font-mono text-sage-soft/60 uppercase tracking-widest font-semibold">Shift End</p>
-            <p className="text-xs sm:text-sm font-display font-bold text-pale-mint tracking-wide">22:00 <span className="text-[9px] font-mono text-sage-soft/40">LOCAL</span></p>
+            <p className="text-[9px] font-mono text-sage-soft uppercase tracking-widest font-semibold">Shift End</p>
+            <p className="text-xs sm:text-sm font-display font-bold text-pale-mint tracking-wide">22:00 <span className="text-[9px] font-mono text-sage-soft/80">LOCAL</span></p>
           </div>
         </div>
       </header>
@@ -666,8 +666,7 @@ export default function App() {
                   <span>How This Works</span>
                 </button>
 
-                <div className="h-4 w-[1px] bg-moss-dark/30 hidden sm:block mx-1"></div>
-                <span className="text-[10px] font-mono text-sage-green italic">Sim Time: {currentTime || '10:23:00'}</span>
+                <span className="text-[10px] font-mono text-sage-soft italic">Sim Time: {currentTime || '10:23:00'}</span>
               </div>
             </div>
 
@@ -847,7 +846,7 @@ export default function App() {
                     {/* Top line indices */}
                     <div className="flex justify-between items-start mb-2 relative z-10">
                       <div>
-                        <span className="text-[9px] font-mono text-sage-soft/60 block uppercase font-bold">STADIUM PORTAL</span>
+                        <span className="text-[9px] font-mono text-sage-soft block uppercase font-bold">STADIUM PORTAL</span>
                         <h3 className="text-sm font-bold text-pale-mint font-display">{gate.name}</h3>
                       </div>
                       <span className={`text-[8.5px] font-mono font-bold px-2 py-0.5 rounded-full border ${
@@ -867,7 +866,7 @@ export default function App() {
                         <span className={`text-3xl font-black font-display tracking-tight ${config.textColor}`}>
                           {gate.density}%
                         </span>
-                        <span className="text-[10px] text-sage-soft/60 font-mono font-bold">CROWD DENSITY</span>
+                        <span className="text-[10px] text-sage-soft font-mono font-bold">CROWD DENSITY</span>
                       </div>
 
                       {/* Direction and Trend Icon */}
@@ -998,7 +997,7 @@ export default function App() {
                                 Redirect Strategy: {alert.gateName}
                               </h4>
                             </div>
-                            <p className="text-[10px] text-sage-soft/60 mt-1 font-mono">
+                            <p className="text-[10px] text-sage-soft mt-1 font-mono">
                               Triggered at {alert.triggerTime} @ {alert.densityAtTrigger}% capacity 
                               {alert.resolved && ` • Resolved at ${alert.resolvedTime}`}
                             </p>
@@ -1035,17 +1034,17 @@ export default function App() {
                         <div className="p-4 space-y-3.5">
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                             <div className="bg-pitch-black/60 p-3 rounded border border-moss-dark/30 space-y-1">
-                              <span className="text-[8px] font-mono text-sage-soft/60 uppercase font-bold tracking-wider block">1. Operational Telemetry</span>
+                              <span className="text-[8px] font-mono text-sage-soft uppercase font-bold tracking-wider block">1. Operational Telemetry</span>
                               <p className="text-[11px] text-pale-mint leading-relaxed font-sans">{alert.whatsHappening}</p>
                             </div>
                             
                             <div className="bg-pitch-black/60 p-3 rounded border border-moss-dark/30 space-y-1">
-                              <span className="text-[8px] font-mono text-sage-soft/60 uppercase font-bold tracking-wider block">2. Risk Matrix</span>
+                              <span className="text-[8px] font-mono text-sage-soft uppercase font-bold tracking-wider block">2. Risk Matrix</span>
                               <p className="text-[11px] text-rose-300 leading-relaxed font-sans">{alert.risk}</p>
                             </div>
                             
                             <div className="bg-pitch-black/60 p-3 rounded border border-moss-dark/30 space-y-1">
-                              <span className="text-[8px] font-mono text-sage-soft/60 uppercase font-bold tracking-wider block">3. Tactical Redirects</span>
+                              <span className="text-[8px] font-mono text-sage-soft uppercase font-bold tracking-wider block">3. Tactical Redirects</span>
                               <p className="text-[11px] text-emerald-300 leading-relaxed font-sans">{alert.action}</p>
                             </div>
                           </div>
@@ -1180,7 +1179,7 @@ export default function App() {
       </Suspense>
 
       {/* Workspace Footer details */}
-      <footer className="h-12 border-t border-moss-dark/30 flex items-center justify-between px-6 bg-pitch-black/80 relative z-10 text-[9.5px] font-mono text-sage-soft/40 uppercase">
+      <footer className="h-12 border-t border-moss-dark/30 flex items-center justify-between px-6 bg-pitch-black/80 relative z-10 text-[9.5px] font-mono text-sage-soft/80 uppercase">
         <span>ZONEWATCH © 2026 // STADIUM MOBILITY SYSTEMS INC</span>
         <span>Secure HTTPS Connection Nominals Verified</span>
       </footer>

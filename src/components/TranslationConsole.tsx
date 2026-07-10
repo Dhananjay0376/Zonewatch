@@ -123,10 +123,10 @@ function TranslationConsole({
               >
                 <span className="text-sm select-none" aria-hidden="true">{preset.flag}</span>
                 <div className="flex-1 min-w-0">
-                  <div className="font-mono text-[9px] text-sage-green group-hover:text-pale-mint transition-colors uppercase tracking-tight font-bold">{preset.lang}</div>
+                  <div className="font-mono text-[9px] text-sage-soft group-hover:text-pale-mint transition-colors uppercase tracking-tight font-bold">{preset.lang}</div>
                   <div className="truncate text-sage-soft/90 italic mt-0.5">&quot;{preset.text}&quot;</div>
                 </div>
-                <ChevronRight className="w-3.5 h-3.5 text-sage-green group-hover:text-pale-mint transition-colors shrink-0 mt-2" aria-hidden="true" />
+                <ChevronRight className="w-3.5 h-3.5 text-sage-soft group-hover:text-pale-mint transition-colors shrink-0 mt-2" aria-hidden="true" />
               </button>
             ))}
           </div>

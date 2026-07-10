@@ -3,22 +3,36 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import {defineConfig} from 'vite';
 
-const inlineCSSPlugin = () => ({
-  name: 'inline-css',
+const inlineAssetsPlugin = () => ({
+  name: 'inline-assets',
   transformIndexHtml(html, ctx) {
     if (!ctx.bundle) return html;
     let cssContent = '';
+    let jsContent = '';
     for (const [fileName, asset] of Object.entries(ctx.bundle)) {
-      if (fileName.endsWith('.css') && 'source' in asset) {
-        cssContent += asset.source;
+      const anyAsset = asset as any;
+      if (fileName.endsWith('.css') && 'source' in anyAsset) {
+        cssContent += anyAsset.source;
+        delete ctx.bundle[fileName];
+      } else if (fileName.endsWith('.js') && 'code' in anyAsset && anyAsset.isEntry) {
+        jsContent += anyAsset.code;
         delete ctx.bundle[fileName];
       }
     }
     html = html.replace(/<link rel="stylesheet"[^>]*href="[^"]+\.css"[^>]*>/g, '');
+    html = html.replace(/<link rel="modulepreload"[^>]*href="[^"]+\.js"[^>]*>/g, '');
+    html = html.replace(/<script type="module"[^>]*src="[^"]*assets\/index-[^"]+\.js"[^>]*><\/script>/g, '');
+    
     if (cssContent) {
-      return html.replace(
+      html = html.replace(
         '</head>',
         `<style>${cssContent}</style></head>`
+      );
+    }
+    if (jsContent) {
+      html = html.replace(
+        '</body>',
+        `<script type="module">${jsContent}</script></body>`
       );
     }
     return html;
@@ -27,28 +41,11 @@ const inlineCSSPlugin = () => ({
 
 export default defineConfig(() => {
   return {
-    plugins: [react(), tailwindcss(), inlineCSSPlugin()],
+    plugins: [react(), tailwindcss(), inlineAssetsPlugin()],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
       },
-    },
-    build: {
-      rollupOptions: {
-        output: {
-          manualChunks(id) {
-            if (id.includes('node_modules')) {
-              if (id.includes('react') || id.includes('react-dom') || id.includes('scheduler') || id.includes('motion') || id.includes('framer-motion')) {
-                return 'framework';
-              }
-              if (id.includes('lucide-react')) {
-                return 'lucide';
-              }
-              return 'vendor';
-            }
-          }
-        }
-      }
     },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.

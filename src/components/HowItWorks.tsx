@@ -26,7 +26,7 @@ export default function HowItWorks({ onClose }: HowItWorksProps) {
           </div>
           <button 
             onClick={onClose}
-            className="text-sage-soft/60 hover:text-pale-mint font-mono text-[10px] cursor-pointer"
+            className="text-sage-soft hover:text-pale-mint font-mono text-[10px] cursor-pointer"
           >
             ✕ Close
           </button>

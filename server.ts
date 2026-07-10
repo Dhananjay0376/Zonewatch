@@ -8,17 +8,16 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import apiRouter from "./server/routes/api";
 
-async function startServer() {
-  const app = express();
-  const PORT = 3000;
+const app = express();
+const PORT = process.env.PORT || 3000;
 
-  app.use(express.json());
+app.use(express.json());
 
-  // Mount API router
-  app.use("/api", apiRouter);
+// Mount API router
+app.use("/api", apiRouter);
 
-  // Vite middleware integration based on environment
-  if (process.env.NODE_ENV !== "production") {
+async function init() {
+  if (process.env.NODE_ENV !== "production" && !process.env.VERCEL) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
@@ -32,9 +31,14 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Zonewatch custom full-stack server running on http://0.0.0.0:${PORT}`);
-  });
+  // Prevent starting port listening when running as a Vercel serverless function
+  if (!process.env.VERCEL) {
+    app.listen(Number(PORT), "0.0.0.0", () => {
+      console.log(`Zonewatch custom full-stack server running on http://0.0.0.0:${PORT}`);
+    });
+  }
 }
 
-startServer();
+init().catch(console.error);
+
+export default app;

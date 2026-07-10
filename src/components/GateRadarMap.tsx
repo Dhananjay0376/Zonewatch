@@ -55,7 +55,7 @@ function GateRadarMap({ gates, alerts }: GateRadarMapProps) {
             Spatial Flow & Perimeter Analytics
           </h3>
         </div>
-        <span className="text-[9px] font-mono text-sage-green uppercase tracking-widest font-semibold">
+        <span className="text-[9px] font-mono text-sage-soft uppercase tracking-widest font-semibold">
           STADIUM LEVEL 1 HUD // RADAR MAP
         </span>
       </div>
@@ -313,25 +313,25 @@ function GateRadarMap({ gates, alerts }: GateRadarMapProps) {
       {/* Bottom analytical telemetry cells */}
       <div className="mt-4 pt-3 border-t border-moss-dark/30 grid grid-cols-2 sm:grid-cols-4 gap-4 text-[10px] font-mono">
         <div className="bg-pitch-black/50 p-2.5 rounded border border-moss-dark/30">
-          <span className="text-sage-soft/50 block text-[8px] uppercase tracking-wider mb-0.5">Perimeter Integrity</span>
+          <span className="text-sage-soft block text-[8px] uppercase tracking-wider mb-0.5">Perimeter Integrity</span>
           <span className={`font-bold uppercase tracking-wider ${stats.maxDensity > 80 ? 'text-rose-400 animate-pulse' : 'text-pale-mint'}`}>
             {stats.maxDensity > 80 ? 'TACTICAL REDIRECTS' : 'NOMINAL STATUS'}
           </span>
         </div>
         <div className="bg-pitch-black/50 p-2.5 rounded border border-moss-dark/30">
-          <span className="text-sage-soft/50 block text-[8px] uppercase tracking-wider mb-0.5">Average Sector Load</span>
+          <span className="text-sage-soft block text-[8px] uppercase tracking-wider mb-0.5">Average Sector Load</span>
           <span className="text-pale-mint font-bold">
             {stats.avgLoad}% Capacity
           </span>
         </div>
         <div className="bg-pitch-black/50 p-2.5 rounded border border-moss-dark/30">
-          <span className="text-sage-soft/50 block text-[8px] uppercase tracking-wider mb-0.5">Active Vector Curvature</span>
-          <span className={`font-bold ${stats.activePathsCount > 0 ? 'text-amber-400' : 'text-sage-soft/50'}`}>
+          <span className="text-sage-soft block text-[8px] uppercase tracking-wider mb-0.5">Active Vector Curvature</span>
+          <span className={`font-bold ${stats.activePathsCount > 0 ? 'text-amber-400' : 'text-sage-soft'}`}>
             {stats.activePathsCount} Active Path{stats.activePathsCount !== 1 ? 's' : ''}
           </span>
         </div>
         <div className="bg-pitch-black/50 p-2.5 rounded border border-moss-dark/30">
-          <span className="text-sage-soft/50 block text-[8px] uppercase tracking-wider mb-0.5">Peak Gate Pressure</span>
+          <span className="text-sage-soft block text-[8px] uppercase tracking-wider mb-0.5">Peak Gate Pressure</span>
           <span className={`font-bold ${stats.maxDensity > 80 ? 'text-rose-400 animate-pulse' : 'text-pale-mint'}`}>
             {stats.maxDensity}%
           </span>
