@@ -1,0 +1,240 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Zonewatch REST API",
+    "description": "Zonewatch Volunteer Copilot stadium operations and real-time decision support REST API specification.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "/api"
+    }
+  ],
+  "paths": {
+    "/recommend": {
+      "post": {
+        "summary": "Request a tactical crowd redirection recommendation for a gate density breach",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecommendRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tactical advisory and megaphone script recommendations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecommendResponse"
+                  }
+                }
+              }
+            },
+          "400": {
+            "description": "Invalid payload parameters"
+          }
+        }
+      }
+    },
+    "/translate": {
+      "post": {
+        "summary": "Translate supporter phrase and execute urgency triage",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TranslateRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Translation result with urgency tag and emotional tone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TranslationResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid phrase"
+          }
+        }
+      }
+    },
+    "/broadcast-script": {
+      "post": {
+        "summary": "Design empathetic megaphone announcer scripts based on active strategies",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BroadcastScriptRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Spoken announcements in 3 languages",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BroadcastResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/navigation": {
+      "post": {
+        "summary": "Provide step-by-step waypoint directions for stadium fans",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NavigationRequestBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Step-by-step route directions and accessibility considerations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NavigationResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Gate": {
+        "type": "object",
+        "required": ["id", "name", "density", "trend"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "density": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "trend": { "type": "string", "enum": ["up", "down", "stable"] }
+        }
+      },
+      "RecommendRequestBody": {
+        "type": "object",
+        "required": ["gate", "gates"],
+        "properties": {
+          "gate": { "$ref": "#/components/schemas/Gate" },
+          "gates": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Gate" }
+          },
+          "history": {
+            "type": "array",
+            "items": { "type": "integer" }
+          }
+        }
+      },
+      "RecommendResponse": {
+        "type": "object",
+        "required": ["whatsHappening", "risk", "action", "scriptEnglish", "scriptSpanish", "scriptFrench"],
+        "properties": {
+          "whatsHappening": { "type": "string" },
+          "risk": { "type": "string" },
+          "action": { "type": "string" },
+          "scriptEnglish": { "type": "string" },
+          "scriptSpanish": { "type": "string" },
+          "scriptFrench": { "type": "string" }
+        }
+      },
+      "TranslateRequestBody": {
+        "type": "object",
+        "required": ["phrase"],
+        "properties": {
+          "phrase": { "type": "string" },
+          "vocalTone": {
+            "type": "object",
+            "properties": {
+              "detectedTone": { "type": "string" },
+              "pitch": { "type": "string" },
+              "speed": { "type": "string" },
+              "volume": { "type": "string" }
+            }
+          }
+        }
+      },
+      "TranslationResult": {
+        "type": "object",
+        "required": ["originalLanguage", "translatedText", "urgencyTag", "classificationReason", "suggestedResponse", "suggestedResponseEnglish", "detectedTone"],
+        "properties": {
+          "originalLanguage": { "type": "string" },
+          "translatedText": { "type": "string" },
+          "urgencyTag": { "type": "string", "enum": ["Casual", "Urgent", "Medical", "Accessibility"] },
+          "classificationReason": { "type": "string" },
+          "suggestedResponse": { "type": "string" },
+          "suggestedResponseEnglish": { "type": "string" },
+          "detectedTone": { "type": "string" }
+        }
+      },
+      "BroadcastScriptRequestBody": {
+        "type": "object",
+        "required": ["whatsHappening", "action"],
+        "properties": {
+          "whatsHappening": { "type": "string" },
+          "action": { "type": "string" },
+          "gateName": { "type": "string" }
+        }
+      },
+      "BroadcastResponse": {
+        "type": "object",
+        "required": ["scriptEnglish", "scriptSpanish", "scriptFrench"],
+        "properties": {
+          "scriptEnglish": { "type": "string" },
+          "scriptSpanish": { "type": "string" },
+          "scriptFrench": { "type": "string" }
+        }
+      },
+      "NavigationRequestBody": {
+        "type": "object",
+        "required": ["query"],
+        "properties": {
+          "query": { "type": "string" },
+          "assignedGate": { "type": "string" },
+          "language": { "type": "string" }
+        }
+      },
+      "NavigationResponse": {
+        "type": "object",
+        "required": ["route", "landmarks", "estimatedWalkMinutes", "inOriginalLanguage"],
+        "properties": {
+          "route": { "type": "string" },
+          "landmarks": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "estimatedWalkMinutes": { "type": "integer" },
+          "accessibilityNote": { "type": "string" },
+          "inOriginalLanguage": { "type": "string" }
+        }
+      }
+    }
+  }
+}
