@@ -16,12 +16,23 @@ import { useAcousticSensor } from './useAcousticSensor';
 const mockRecognitionStart = vi.fn();
 const mockRecognitionStop  = vi.fn();
 
+/** Minimal SpeechRecognitionResultEvent shape used only in tests. */
+interface MockSpeechRecognitionEvent {
+  results: SpeechRecognitionResultList;
+}
+
+/** Minimal SpeechRecognitionErrorEvent shape used only in tests. */
+interface MockSpeechRecognitionErrorEvent {
+  error: string;
+  message?: string;
+}
+
 class MockSpeechRecognition {
   continuous      = false;
   interimResults  = false;
   lang            = '';
-  onresult: ((e: any) => void) | null = null;
-  onerror:  ((e: any) => void) | null = null;
+  onresult: ((e: MockSpeechRecognitionEvent) => void) | null = null;
+  onerror:  ((e: MockSpeechRecognitionErrorEvent) => void) | null = null;
   start = mockRecognitionStart;
   stop  = mockRecognitionStop;
 }
@@ -128,9 +139,12 @@ describe('useAcousticSensor', () => {
 
   it('exposes micPermissionError when SpeechRecognition API is absent', async () => {
     // Remove both SR constructors so the hook takes the "not supported" branch.
-    const win = window as any;
-    const origSR  = win.SpeechRecognition;
-    const origWSR = win.webkitSpeechRecognition;
+    // Cast window to a plain record for test-only property manipulation.
+    // The double-cast through `unknown` is required because Window & typeof globalThis
+    // does not have an index signature for string keys.
+    const win = window as unknown as Window & Record<string, unknown>;
+    const origSR  = win['SpeechRecognition'];
+    const origWSR = win['webkitSpeechRecognition'];
     delete win.SpeechRecognition;
     delete win.webkitSpeechRecognition;
 
@@ -151,8 +165,8 @@ describe('useAcousticSensor', () => {
     expect(result.current.micPermissionError).toMatch(/not supported/i);
 
     // Restore both globals
-    if (origSR)  win.SpeechRecognition  = origSR;
-    if (origWSR) win.webkitSpeechRecognition = origWSR;
+    if (origSR)  win['SpeechRecognition']  = origSR;
+    if (origWSR) win['webkitSpeechRecognition'] = origWSR;
     Object.defineProperty(navigator, 'mediaDevices', {
       value: origMediaDevices,
       writable: true,

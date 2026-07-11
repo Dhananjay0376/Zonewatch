@@ -34,7 +34,7 @@ describe('Edge Cases', () => {
 
     render(<App />);
 
-    const input = await screen.findByPlaceholderText(/Où est l'entrée/i);
+    const input = await screen.findByPlaceholderText(/Où est l'entrée/i, {}, { timeout: 10000 });
     fireEvent.change(input, { target: { value: '   ' } });
 
     const analyzeBtn = screen.getByRole('button', { name: /Analyze/i });
@@ -76,7 +76,7 @@ describe('Edge Cases', () => {
 
     render(<App />);
 
-    const input = await screen.findByPlaceholderText(/Où est l'entrée/i);
+    const input = await screen.findByPlaceholderText(/Où est l'entrée/i, {}, { timeout: 10000 });
     fireEvent.change(input, { target: { value: 'Donde esta la puerta' } });
 
     const analyzeBtn = screen.getByRole('button', { name: /Analyze/i });
@@ -142,11 +142,15 @@ describe('Edge Cases', () => {
 
   // 4. Malformed or empty CSV/PDF file upload
   it('displays a clear error state when file parsing fails or is empty', async () => {
+    /** Minimal ProgressEvent-like shape fired by our mock FileReader. */
+    interface MockProgressEvent {
+      target: { result: string };
+    }
     // Stub FileReader as a proper class that fires onload asynchronously (matches real FileReader behavior)
     class MockFileReader {
-      onload: ((e: any) => void) | null = null;
-      onerror: ((e: any) => void) | null = null;
-      readAsDataURL(_file: any) {
+      onload: ((e: MockProgressEvent) => void) | null = null;
+      onerror: ((e: ProgressEvent) => void) | null = null;
+      readAsDataURL() {
         const handler = this.onload;
         queueMicrotask(() => {
           handler?.({

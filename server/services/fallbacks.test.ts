@@ -9,11 +9,11 @@ import {
 
 describe('fallbacks - getRecommendFallback', () => {
   it('should redirect to the lowest density gate', () => {
-    const gate = { id: 'gate-b', name: 'Gate B', density: 85 };
+    const gate = { id: 'gate-b', name: 'Gate B', density: 85, trend: 'up' as const };
     const gates = [
       gate,
-      { id: 'gate-c', name: 'Gate C', density: 40 },
-      { id: 'gate-d', name: 'Gate D', density: 15 }
+      { id: 'gate-c', name: 'Gate C', density: 40, trend: 'stable' as const },
+      { id: 'gate-d', name: 'Gate D', density: 15, trend: 'down' as const }
     ];
     const result = getRecommendFallback(gate, gates);
     expect(result.action).toContain('Gate D');
@@ -24,11 +24,11 @@ describe('fallbacks - getRecommendFallback', () => {
 
 describe('fallbacks - getRecommendUltimateFallback', () => {
   it('should redirect to the lowest density gate', () => {
-    const gate = { id: 'gate-b', name: 'Gate B', density: 85 };
+    const gate = { id: 'gate-b', name: 'Gate B', density: 85, trend: 'up' as const };
     const gates = [
       gate,
-      { id: 'gate-c', name: 'Gate C', density: 50 },
-      { id: 'gate-d', name: 'Gate D', density: 10 }
+      { id: 'gate-c', name: 'Gate C', density: 50, trend: 'stable' as const },
+      { id: 'gate-d', name: 'Gate D', density: 10, trend: 'down' as const }
     ];
     const result = getRecommendUltimateFallback(gate, gates);
     expect(result.action).toContain('Gate D');

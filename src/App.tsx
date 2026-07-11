@@ -29,6 +29,7 @@ const GateRadarMap = lazy(() => import('./components/GateRadarMap'));
 const TranslationConsole = lazy(() => import('./components/TranslationConsole'));
 const MegaphoneControl = lazy(() => import('./components/MegaphoneControl'));
 const HowItWorks = lazy(() => import('./components/HowItWorks'));
+const NavigationPanel = lazy(() => import('./components/NavigationPanel'));
 import ConsoleLogs from './components/ConsoleLogs';
 
 export default function App() {
@@ -117,6 +118,9 @@ export default function App() {
 
   // Update simulation current time
   useEffect(() => {
+    // Capture the ref value at effect-body level so the cleanup closure
+    // references the same object snapshot (satisfies react-hooks/exhaustive-deps).
+    const alertTimeouts = copiedAlertTimeoutsRef.current;
     const updateTime = () => {
       const now = new Date();
       setCurrentTime(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }));
@@ -125,8 +129,7 @@ export default function App() {
     const interval = setInterval(updateTime, 1000);
     return () => {
       clearInterval(interval);
-      // Clean up copy alert script timeouts
-      Object.values(copiedAlertTimeoutsRef.current).forEach(clearTimeout);
+      Object.values(alertTimeouts).forEach(clearTimeout);
     };
   }, []);
 
@@ -232,6 +235,8 @@ export default function App() {
   };
 
   // Submit supporter vocal phrase for language translation & severity triage
+  // The server /api/translate endpoint handles all fallback logic, so the client
+  // only needs to handle network-level errors here.
   const handleTranslateSupporter = useCallback(async (phraseToSubmit?: string, vocalToneOverride?: VoiceToneResult) => {
     const rawPhrase = phraseToSubmit !== undefined ? phraseToSubmit : supporterPhrase;
     const activePhrase = sanitizeInput(rawPhrase);
@@ -265,163 +270,32 @@ export default function App() {
       addLog(`Detected: ${data.originalLanguage} | Triage: ${data.urgencyTag.toUpperCase()}`);
 
       if (data.detectedTone) {
-        setVoiceToneResult((prev) => {
-          if (prev) {
-            return {
-              ...prev,
-              detectedTone: data.detectedTone
-            };
-          } else {
-            return {
-              detectedTone: data.detectedTone,
-              pitch: "Normal",
-              speed: "Normal",
-              volume: "Normal",
-              confidence: 95,
-              dbLevel: 55,
-              hzLevel: 145
-            };
-          }
-        });
+        setVoiceToneResult((prev) => prev
+          ? { ...prev, detectedTone: data.detectedTone }
+          : { detectedTone: data.detectedTone, pitch: 'Normal', speed: 'Normal', volume: 'Normal', confidence: 95, dbLevel: 55, hzLevel: 145 }
+        );
       }
     } catch (err: unknown) {
       console.error(err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to analyze phrase';
       setErrorTranslate(errorMessage);
-      addLog(`ERROR: Supporter translation copilot failed. Engaging local translation heuristic fallback.`);
-      
-      const lower = activePhrase.toLowerCase().trim();
-      let fallbackResult: Omit<TranslationResult, 'detectedTone'> & { detectedTone?: string } = {
-        originalLanguage: "Spanish",
+      addLog(`ERROR: Translation service unavailable. Check network connection.`);
+      // The server already returns fallback data on AI failure, so a network error
+      // here means we're completely offline. Show a minimal local indicator.
+      setTranslationResult({
+        originalLanguage: 'Auto-Detected',
         translatedText: activePhrase,
-        urgencyTag: "Casual",
-        classificationReason: "Supporter asking for standard directions or general help.",
-        suggestedResponse: "Hola, ¿cómo puedo ayudarte hoy?",
-        suggestedResponseEnglish: "Hello, how can I help you today?",
-        detectedTone: "Calm & Conversational",
-        isLocalFallback: true
-      };
-
-      if (lower.includes("corazón") || lower.includes("corazon") || lower.includes("padre") || lower.includes("dolor") || lower.includes("medico") || lower.includes("enfermo") || lower.includes("ayuda") || lower.includes("sangre") || lower.includes("urgente")) {
-        fallbackResult = {
-          originalLanguage: "Spanish",
-          translatedText: lower.includes("padre") || lower.includes("corazón") || lower.includes("corazon")
-            ? "Help please! My father is feeling very sick with his heart near Gate C." 
-            : "I need medical help / I feel sick.",
-          urgencyTag: "Medical",
-          classificationReason: "Explicit mention of cardiac emergency symptoms or urgent medical distress.",
-          suggestedResponse: "Por favor, quédese aquí tranquilo. Estoy llamando a nuestro equipo médico de inmediato para que lo asistan. Todo va a estar bien.",
-          suggestedResponseEnglish: "Please, stay here and remain calm. I am calling our medical response team right now to assist you. Everything is going to be okay.",
-          detectedTone: "Panic-stricken & Distressed",
-          isLocalFallback: true
-        };
-      } else if (lower.includes("silla") || lower.includes("ruedas") || lower.includes("discapacidad") || lower.includes("rampa") || lower.includes("ascensor")) {
-        fallbackResult = {
-          originalLanguage: "Spanish",
-          translatedText: "Where is the wheelchair ramp / elevator?",
-          urgencyTag: "Accessibility",
-          classificationReason: "Inquiry regarding wheelchair access or accessibility services.",
-          suggestedResponse: "Contamos con una rampa de acceso y un ascensor a la vuelta de esta esquina, a la derecha. Un voluntario lo puede acompañar si gusta.",
-          suggestedResponseEnglish: "We have an accessibility ramp and elevator just around this corner, to the right. A volunteer can accompany you if you'd like.",
-          detectedTone: "Concerned & Seeking Assistance",
-          isLocalFallback: true
-        };
-      } else if (lower.includes("toilet") || lower.includes("toilettes") || lower.includes("toiletette") || lower.includes("perdido") || lower.includes("puerta") || lower.includes("boleto") || lower.includes("baño") || lower.includes("agua")) {
-        const isToiletFrench = lower.includes("toilettes") || lower.includes("toilette");
-        fallbackResult = {
-          originalLanguage: isToiletFrench ? "French" : "Spanish",
-          translatedText: isToiletFrench 
-            ? "Hello, excuse me, where are the closest restrooms please?" 
-            : "I am lost / where is the restroom or water?",
-          urgencyTag: "Casual",
-          classificationReason: "Spectator requesting restrooms location and general directions.",
-          suggestedResponse: isToiletFrench 
-            ? "Les toilettes les plus proches sont situées juste à côté de la Porte D, à environ trente mètres d'ici." 
-            : "Los baños y dispensadores de agua están derecho por este pasillo a unos 50 metros.",
-          suggestedResponseEnglish: isToiletFrench 
-            ? "The nearest restrooms are located right next to Gate D, about thirty meters from here." 
-            : "The restrooms and water stations are straight down this hallway about 50 meters.",
-          detectedTone: "Calm & Conversational",
-          isLocalFallback: true
-        };
-      } else if (lower.includes("hilfe") || lower.includes("tochter") || lower.includes("luft") || lower.includes("sanit") || lower.includes("arzt")) {
-        fallbackResult = {
-          originalLanguage: "German",
-          translatedText: "Help! My daughter has run out of air and urgently needs a paramedic!",
-          urgencyTag: "Medical",
-          classificationReason: "Urgent German request regarding breathing difficulty and emergency medical team support.",
-          suggestedResponse: "Bitte bleiben Sie ganz ruhig hier bei mir. Ich habe soeben den Sanitätsdienst alarmiert, sie sind sofort auf dem Weg zu uns. Wir helfen Ihnen!",
-          suggestedResponseEnglish: "Please remain calm here with me. I have just alerted the medical service, they are on their way to us immediately. We will help you!",
-          detectedTone: "Panic-stricken & Distressed",
-          isLocalFallback: true
-        };
-      } else if (lower.includes("車椅子") || lower.includes("エレベーター") || lower.includes("えれべーたー") || lower.includes("くるまいす")) {
-        fallbackResult = {
-          originalLanguage: "Japanese",
-          translatedText: "Excuse me, where is the elevator for wheelchair users?",
-          urgencyTag: "Accessibility",
-          classificationReason: "Accessibility request for wheelchair lift/elevator access in Japanese.",
-          suggestedResponse: "車椅子用のエレベーターは、この角を右に曲がってすぐのところにございます。よろしければ、スタッフがご案内いたします。",
-          suggestedResponseEnglish: "The elevator for wheelchair users is located just around this corner on the right. If you'd like, a staff member can guide you there.",
-          detectedTone: "Concerned & Seeking Assistance",
-          isLocalFallback: true
-        };
-      } else if (lower.includes("मदद") || lower.includes("पानी") || lower.includes("शौचालय") || lower.includes("डॉक्टर") || lower.includes("madad") || lower.includes("paani") || lower.includes("shauchalay")) {
-        fallbackResult = {
-          originalLanguage: "Hindi",
-          translatedText: lower.includes("मदद") || lower.includes("madad") 
-            ? "Help! Please call a doctor immediately, someone is sick." 
-            : "Excuse me, where can I find drinking water or restrooms?",
-          urgencyTag: lower.includes("मदद") || lower.includes("madad") ? "Medical" : "Casual",
-          classificationReason: "Supporter request in Hindi concerning medical aid or essential stadium facilities.",
-          suggestedResponse: lower.includes("मदद") || lower.includes("madad")
-            ? "कृपया यहीं शांत रहें। मैंने आपातकालीन चिकित्सा टीम को सूचित कर दिया है, वे तुरंत आ रहे हैं।"
-            : "पानी के काउंटर और शौचालय सीधे इस गलियारे में लगभग पचास मीटर की दूरी पर हैं।",
-          suggestedResponseEnglish: lower.includes("मदद") || lower.includes("madad")
-            ? "Please stay calm here. I have informed the emergency medical team, they are coming immediately."
-            : "The water stations and restrooms are straight down this corridor about fifty meters.",
-          isLocalFallback: true
-        };
-      } else {
-        fallbackResult = {
-          originalLanguage: "Auto-Detected",
-          translatedText: activePhrase,
-          urgencyTag: "Casual",
-          classificationReason: "General spectator inquiry.",
-          suggestedResponse: `We understand your inquiry: "${activePhrase}". Let us find a team leader or nearby signage to assist you immediately.`,
-          suggestedResponseEnglish: "We understand your inquiry. Let us find a team leader or nearby signage to assist you immediately.",
-          isLocalFallback: true
-        };
-      }
-
-      let fallbackTone = "Calm & Conversational (Offline Fallback)";
-      if (lower.includes("corazón") || lower.includes("corazon") || lower.includes("padre") || lower.includes("dolor") || lower.includes("medico") || lower.includes("enfermo") || lower.includes("ayuda") || lower.includes("sangre") || lower.includes("urgente") || lower.includes("hilfe") || lower.includes("luft") || lower.includes("sanit") || lower.includes("arzt") || lower.includes("मदद") || lower.includes("madad")) {
-        fallbackTone = "Panic-stricken & Distressed (Offline Fallback)";
-      } else if (lower.includes("silla") || lower.includes("ruedas") || lower.includes("discapacidad") || lower.includes("rampa") || lower.includes("ascensor") || lower.includes("車椅子") || lower.includes("エレベーター") || lower.includes("えれべーたー") || lower.includes("くるまいす") || lower.includes("fauteuil") || lower.includes("roulant") || lower.includes("perdu") || lower.includes("lost")) {
-        fallbackTone = "Concerned & Seeking Assistance (Offline Fallback)";
-      }
-
-      setVoiceToneResult((prev) => {
-        if (prev) {
-          return { ...prev, detectedTone: fallbackTone };
-        } else {
-          return {
-            detectedTone: fallbackTone,
-            pitch: "Normal",
-            speed: "Normal",
-            volume: "Normal",
-            confidence: 90,
-            dbLevel: 55,
-            hzLevel: 145
-          };
-        }
+        urgencyTag: 'Casual',
+        classificationReason: 'Network error — translation service unreachable.',
+        suggestedResponse: 'Please wait while we reconnect to the translation service.',
+        suggestedResponseEnglish: 'Please wait while we reconnect to the translation service.',
+        detectedTone: 'Calm & Conversational',
+        isLocalFallback: true,
       });
-
-      setTranslationResult(fallbackResult as TranslationResult);
     } finally {
       setIsTranslating(false);
     }
-  }, [supporterPhrase, voiceToneResult, addLog]);
+  }, [supporterPhrase, voiceToneResult, setVoiceToneResult, addLog]);
 
   // Trigger simulated voice announcers
   const triggerSimulatedBroadcast = () => {
@@ -1162,6 +1036,14 @@ export default function App() {
           </Suspense>
 
           <ConsoleLogs systemLogs={systemLogs} />
+
+          {/* AI-Powered Stadium Navigation Assistant (FIFA World Cup 2026) */}
+          <Suspense fallback={<div className="h-40 animate-pulse bg-pitch-dark/40 border border-moss-dark/60 rounded-lg" />}>
+            <NavigationPanel
+              assignedGate={gates[0]?.name ?? 'Main Concourse'}
+              addLog={addLog}
+            />
+          </Suspense>
         </section>
       </main>
 

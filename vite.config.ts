@@ -1,7 +1,8 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import {defineConfig} from 'vite';
+import { defineConfig } from 'vite';
+import type { OutputAsset } from 'rollup';
 
 const inlineCSSPlugin = () => ({
   name: 'inline-css',
@@ -9,9 +10,9 @@ const inlineCSSPlugin = () => ({
     if (!ctx.bundle) return html;
     let cssContent = '';
     for (const [fileName, asset] of Object.entries(ctx.bundle)) {
-      const anyAsset = asset as any;
-      if (fileName.endsWith('.css') && 'source' in anyAsset) {
-        cssContent += anyAsset.source;
+      const typedAsset = asset as OutputAsset;
+      if (fileName.endsWith('.css') && 'source' in typedAsset) {
+        cssContent += typedAsset.source;
         delete ctx.bundle[fileName];
       }
     }
