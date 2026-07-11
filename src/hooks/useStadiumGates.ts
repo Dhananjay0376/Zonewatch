@@ -6,6 +6,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Gate, Alert } from '../types';
 import { getDensityFluctuation } from '../utils/math';
+import { db } from '../firebase';
+import { collection, doc, setDoc, updateDoc, onSnapshot, query, orderBy } from 'firebase/firestore';
 
 interface StadiumGatesProps {
   addLog: (msg: string) => void;
@@ -61,20 +63,37 @@ export function useStadiumGates({ addLog }: StadiumGatesProps) {
     pendingRequestsRef.current = pendingRequests;
   }, [pendingRequests]);
 
-  // Resolve active alert
-  const resolveActiveAlert = useCallback((gateId: string) => {
+  // Synchronise alerts in real-time with Firestore
+  useEffect(() => {
+    const q = query(collection(db, 'alerts'), orderBy('triggerTime', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fbAlerts: Alert[] = [];
+      snapshot.forEach((doc) => {
+        fbAlerts.push({ id: doc.id, ...doc.data() } as Alert);
+      });
+      setAlerts(fbAlerts);
+    }, (err) => {
+      console.error("Firestore subscription error:", err);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Resolve active alert in Firestore
+  const resolveActiveAlert = useCallback(async (gateId: string) => {
     const timestamp = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    setAlerts(prev => prev.map(alert => {
-      if (alert.gateId === gateId && !alert.resolved) {
-        addLog(`System nominals restored on ${alert.gateName}. Resolution logged.`);
-        return {
-          ...alert,
+    const alertToResolve = alertsRef.current.find(alert => alert.gateId === gateId && !alert.resolved);
+    
+    if (alertToResolve) {
+      addLog(`System nominals restored on ${alertToResolve.gateName}. Resolution logged to Firestore.`);
+      try {
+        await updateDoc(doc(db, 'alerts', alertToResolve.id), {
           resolved: true,
           resolvedTime: timestamp
-        };
+        });
+      } catch (err) {
+        console.error("Failed to resolve alert in Firestore:", err);
       }
-      return alert;
-    }));
+    }
   }, [addLog]);
 
   // Execute Gemini reasoning operational recommendation API call
@@ -98,14 +117,12 @@ export function useStadiumGates({ addLog }: StadiumGatesProps) {
       severity: targetGate.density >= 90 ? 'critical' : 'warning',
     };
 
-    setAlerts(prev => {
-      const nextAlerts = [placeholderAlert, ...prev];
-      // Cap alerts at 30 to prevent unbounded growth during a long session
-      if (nextAlerts.length > 30) {
-        return nextAlerts.slice(0, 30);
-      }
-      return nextAlerts;
-    });
+    // Save placeholder alert directly to Firestore (triggers subscription update)
+    try {
+      await setDoc(doc(db, 'alerts', tempId), placeholderAlert);
+    } catch (err) {
+      console.error("Failed to write initial alert to Firestore:", err);
+    }
 
     try {
       const response = await fetch('/api/recommend', {
@@ -124,43 +141,35 @@ export function useStadiumGates({ addLog }: StadiumGatesProps) {
 
       const result = await response.json();
 
-      setAlerts(prev => prev.map(alert => {
-        if (alert.id === tempId) {
-          return {
-            ...alert,
-            whatsHappening: result.whatsHappening,
-            risk: result.risk,
-            action: result.action,
-            scriptEnglish: result.scriptEnglish,
-            scriptSpanish: result.scriptSpanish,
-            scriptFrench: result.scriptFrench,
-            isLocalFallback: result.isLocalFallback,
-            severity: targetGate.density >= 90 ? 'critical' : 'warning',
-          };
-        }
-        return alert;
-      }));
+      await updateDoc(doc(db, 'alerts', tempId), {
+        whatsHappening: result.whatsHappening,
+        risk: result.risk,
+        action: result.action,
+        scriptEnglish: result.scriptEnglish,
+        scriptSpanish: result.scriptSpanish,
+        scriptFrench: result.scriptFrench,
+        isLocalFallback: result.isLocalFallback,
+        severity: targetGate.density >= 90 ? 'critical' : 'warning',
+      });
 
       addLog(`Gemini Copilot generated actionable route plan for ${targetGate.name}.`);
     } catch (err: unknown) {
       console.error(err);
       addLog(`CRITICAL: Gemini query failed for ${targetGate.name}. Using fallback directives.`);
       
-      setAlerts(prev => prev.map(alert => {
-        if (alert.id === tempId) {
-          return {
-            ...alert,
-            whatsHappening: `Unusual congestion detected at ${targetGate.name} (${targetGate.density}%).`,
-            risk: "Risk of high local density causing queuing and delays.",
-            action: "Operational copilot advises manually routing arriving fans to adjacent low-density gates.",
-            scriptEnglish: `Attention guests: Please move to the other gates to get inside faster. Thank you!`,
-            scriptSpanish: `Atención: Por favor diríjase a las otras puertas para ingresar más rápido. ¡Gracias!`,
-            scriptFrench: `Attention s'il vous plaît: Veuillez vous diriger vers les autres portes. Merci!`,
-            isLocalFallback: true,
-          };
-        }
-        return alert;
-      }));
+      try {
+        await updateDoc(doc(db, 'alerts', tempId), {
+          whatsHappening: `Unusual congestion detected at ${targetGate.name} (${targetGate.density}%).`,
+          risk: "Risk of high local density causing queuing and delays.",
+          action: "Operational copilot advises manually routing arriving fans to adjacent low-density gates.",
+          scriptEnglish: `Attention guests: Please move to the other gates to get inside faster. Thank you!`,
+          scriptSpanish: `Atención: Por favor diríjase a las otras puertas para ingresar más rápido. ¡Gracias!`,
+          scriptFrench: `Attention s'il vous plaît: Veuillez vous diriger vers les autres portes. Merci!`,
+          isLocalFallback: true,
+        });
+      } catch (fErr) {
+        console.error("Failed to write fallback to Firestore:", fErr);
+      }
     } finally {
       setPendingRequests(prev => ({ ...prev, [targetGate.id]: false }));
     }
@@ -259,7 +268,6 @@ export function useStadiumGates({ addLog }: StadiumGatesProps) {
       'gate-d': [72, 70, 68, 66, 64],
       'gate-e': [15, 16, 17, 18, 19],
     });
-    setAlerts([]);
     addLog("Standard Live telemetry feed restored. Clearing custom mock states.");
   }, [addLog]);
 

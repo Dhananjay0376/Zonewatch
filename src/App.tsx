@@ -12,12 +12,17 @@ import {
   Plus, 
   Sparkles, 
   Info,
-  Database,
   RefreshCw,
   AlertOctagon,
-  Languages
+  Languages,
+  LogOut
 } from 'lucide-react';
-import type { Alert, ParseMockFileResponse, ParsedGate, TranslationResult, VoiceToneResult } from './types';
+import type { Alert, ParsedGate, TranslationResult, VoiceToneResult } from './types';
+
+// Firebase imports
+import { onAuthStateChanged, signOut, User } from 'firebase/auth';
+import { auth } from './firebase';
+import LoginScreen from './components/LoginScreen';
 
 // Custom Hooks
 import { useStadiumGates } from './hooks/useStadiumGates';
@@ -36,6 +41,10 @@ import ConsoleLogs from './components/ConsoleLogs';
 import { getDensityConfig } from './utils/gateUtils';
 
 export default function App() {
+  // Authentication State
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState<boolean>(true);
+
   // Operational Time & System Logging states
   const [currentTime, setCurrentTime] = useState<string>('');
   const [systemLogs, setSystemLogs] = useState<{ id: string; text: string }[]>([
@@ -43,6 +52,20 @@ export default function App() {
     { id: 'init-2', text: 'Establishing live link with SOC (North Hub)...' },
     { id: 'init-3', text: 'Telemetry links nominal on Gates B, C, D, E.' }
   ]);
+
+  // Listen to Auth State
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+      setAuthLoading(false);
+      if (user) {
+        addLog(`User ${user.email} authenticated. Session active.`);
+      } else {
+        addLog('No active user session detected.');
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   // Safe Logger helper
   const addLog = useCallback((message: string) => {
@@ -117,8 +140,6 @@ export default function App() {
 
   // Update simulation current time
   useEffect(() => {
-    // Capture the ref value at effect-body level so the cleanup closure
-    // references the same object snapshot (satisfies react-hooks/exhaustive-deps).
     const alertTimeouts = copiedAlertTimeoutsRef.current;
     const updateTime = () => {
       const now = new Date();
@@ -139,10 +160,9 @@ export default function App() {
       newHistory[g.id] = g.history || [g.density, g.density, g.density, g.density, g.density];
     });
     setGateHistory(prev => ({ ...prev, ...newHistory }));
-    setAlerts([]);
     setIsUsingCustomData(true);
     addLog(`Telemetry updated: ${summary}`);
-  }, [setGates, setGateHistory, setAlerts, addLog]);
+  }, [setGates, setGateHistory, addLog]);
 
   const handleResetTelemetry = useCallback(() => {
     handleResetToDefault();
@@ -161,8 +181,6 @@ export default function App() {
   };
 
   // Submit supporter vocal phrase for language translation & severity triage
-  // The server /api/translate endpoint handles all fallback logic, so the client
-  // only needs to handle network-level errors here.
   const handleTranslateSupporter = useCallback(async (phraseToSubmit?: string, vocalToneOverride?: VoiceToneResult) => {
     const rawPhrase = phraseToSubmit !== undefined ? phraseToSubmit : supporterPhrase;
     const activePhrase = sanitizeInput(rawPhrase);
@@ -206,8 +224,7 @@ export default function App() {
       const errorMessage = err instanceof Error ? err.message : 'Failed to analyze phrase';
       setErrorTranslate(errorMessage);
       addLog(`ERROR: Translation service unavailable. Check network connection.`);
-      // The server already returns fallback data on AI failure, so a network error
-      // here means we're completely offline. Show a minimal local indicator.
+      
       setTranslationResult({
         originalLanguage: 'Auto-Detected',
         translatedText: activePhrase,
@@ -230,7 +247,9 @@ export default function App() {
       ? activeBroadcastAlert.scriptEnglish
       : activeBroadcastLanguage === 'spanish'
         ? activeBroadcastAlert.scriptSpanish
-        : activeBroadcastAlert.scriptFrench;
+        : activeBroadcastLanguage === 'french'
+          ? activeBroadcastAlert.scriptFrench
+          : '';
 
     if (!txt) return;
 
@@ -323,6 +342,20 @@ export default function App() {
     }, 2000);
   }, []);
 
+  // Show Auth Spinner during checks
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-pitch-black text-pale-mint flex items-center justify-center flex-col gap-3 font-mono">
+        <RefreshCw className="w-8 h-8 animate-spin text-pale-mint" />
+        <span className="text-xs uppercase tracking-widest animate-pulse">Synchronizing ZoneWatch Identity Hub...</span>
+      </div>
+    );
+  }
+
+  // Enforce authentication barrier
+  if (!currentUser) {
+    return <LoginScreen />;
+  }
 
   return (
     <div id="zonewatch-container" className="min-h-screen bg-pitch-black text-sage-soft font-sans selection:bg-pale-mint/30 selection:text-pale-mint flex flex-col justify-between overflow-x-hidden antialiased relative">
@@ -373,14 +406,32 @@ export default function App() {
         </div>
 
         <div className="flex items-center space-x-4 md:space-x-8">
-          <div className="text-right">
+          <div className="text-right hidden md:block">
             <p className="text-[9px] font-mono text-sage-soft uppercase tracking-widest font-semibold">Assigned Sector</p>
             <p className="text-xs sm:text-sm font-display font-bold text-pale-mint tracking-wide">GATES B — E (LEVEL 1)</p>
           </div>
-          <div className="h-10 w-[1px] bg-moss-dark/40"></div>
-          <div className="text-right">
-            <p className="text-[9px] font-mono text-sage-soft uppercase tracking-widest font-semibold">Shift End</p>
-            <p className="text-xs sm:text-sm font-display font-bold text-pale-mint tracking-wide">22:00 <span className="text-[9px] font-mono text-sage-soft/80">LOCAL</span></p>
+          <div className="h-10 w-[1px] bg-moss-dark/40 hidden md:block"></div>
+
+          {/* User profile & logout */}
+          <div className="flex items-center gap-3">
+            {currentUser.photoURL ? (
+              <img src={currentUser.photoURL} alt="Profile" className="w-8 h-8 rounded-full border border-pale-mint/40" />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-moss-deep border border-moss-dark flex items-center justify-center text-pale-mint font-bold text-xs uppercase">
+                {currentUser.email?.substring(0, 2) || 'ZW'}
+              </div>
+            )}
+            <div className="text-left hidden sm:block">
+              <p className="text-[9px] font-mono text-sage-soft uppercase tracking-widest font-semibold">Logged In As</p>
+              <p className="text-xs font-display font-bold text-pale-mint truncate max-w-[120px]">{currentUser.displayName || currentUser.email}</p>
+            </div>
+            <button
+              onClick={() => signOut(auth)}
+              className="p-1.5 rounded hover:bg-moss-deep border border-transparent hover:border-moss-dark text-sage-soft hover:text-pale-mint transition-colors cursor-pointer"
+              title="Sign Out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </header>
@@ -492,7 +543,7 @@ export default function App() {
                     <div className="flex items-baseline justify-between mb-3 relative z-10">
                       <div className="flex items-baseline gap-1.5">
                         <span className={`text-3xl font-black font-display tracking-tight ${config.textColor}`}>
-                          {gate.density}%
+                           {gate.density}%
                         </span>
                         <span className="text-[10px] text-sage-soft font-mono font-bold">CROWD DENSITY</span>
                       </div>

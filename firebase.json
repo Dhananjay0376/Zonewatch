@@ -1,0 +1,19 @@
+{
+  "auth": {
+    "providers": {
+      "emailPassword": true,
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "Zonewatch Dashboard",
+        "supportEmail": "support@example.com",
+        "authorizedRedirectUris": [
+          "https://zonewatch-4581f.firebaseapp.com",
+          "http://localhost"
+        ]
+      }
+    }
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  }
+}
