@@ -67,7 +67,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-pitch-dark text-pale-mint flex items-center justify-center p-4 relative overflow-hidden font-display select-none">
+    <div className="min-h-screen bg-pitch-dark text-pale-mint flex items-center justify-center p-4 relative overflow-hidden font-display">
       {/* Background ambient lighting */}
       <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-moss-dark/20 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-[350px] h-[350px] bg-emerald-950/15 rounded-full blur-[100px] pointer-events-none" />
