@@ -8,11 +8,11 @@ import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  projectId: "zonewatch-4581f",
-  appId: "1:316486521251:web:d713c72b22572b9a1fcbb1",
-  storageBucket: "zonewatch-4581f.firebasestorage.app",
-  apiKey: "AIzaSyDr94qf0w81D-x9W48c2Q2Lp6PzN5-gO5k",
-  authDomain: "zonewatch-4581f.firebaseapp.com",
+  projectId: "zone-watch",
+  appId: "1:316486521251:web:75196e3367b09ebb858a16",
+  storageBucket: "zone-watch.firebasestorage.app",
+  apiKey: "AIzaSyAwdMC4NbQg5Trn7Jyt6Zq7c7By-rCn-ME",
+  authDomain: "zone-watch.firebaseapp.com",
   messagingSenderId: "316486521251"
 };
 

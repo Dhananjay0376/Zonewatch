@@ -6,7 +6,7 @@
         "oAuthBrandDisplayName": "Zonewatch Dashboard",
         "supportEmail": "support@example.com",
         "authorizedRedirectUris": [
-          "https://zonewatch-4581f.firebaseapp.com",
+          "https://zone-watch.firebaseapp.com",
           "http://localhost"
         ]
       }
