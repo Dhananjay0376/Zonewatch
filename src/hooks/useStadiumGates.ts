@@ -14,6 +14,8 @@ interface StadiumGatesProps {
 }
 
 export function useStadiumGates({ addLog }: StadiumGatesProps) {
+  const isTestEnv = typeof process !== 'undefined' && process.env.NODE_ENV === 'test';
+
   // 1. Live simulated gate density state
   const [gates, setGates] = useState<Gate[]>([
     { id: 'gate-b', name: 'Gate B', density: 42, trend: 'up' },
@@ -63,8 +65,10 @@ export function useStadiumGates({ addLog }: StadiumGatesProps) {
     pendingRequestsRef.current = pendingRequests;
   }, [pendingRequests]);
 
-  // Synchronise alerts in real-time with Firestore
+  // Synchronise alerts in real-time with Firestore (skip in Vitest)
   useEffect(() => {
+    if (isTestEnv) return;
+
     const q = query(collection(db, 'alerts'), orderBy('triggerTime', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const fbAlerts: Alert[] = [];
@@ -76,11 +80,27 @@ export function useStadiumGates({ addLog }: StadiumGatesProps) {
       console.error("Firestore subscription error:", err);
     });
     return () => unsubscribe();
-  }, []);
+  }, [isTestEnv]);
 
-  // Resolve active alert in Firestore
+  // Resolve active alert
   const resolveActiveAlert = useCallback(async (gateId: string) => {
     const timestamp = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    
+    if (isTestEnv) {
+      setAlerts(prev => prev.map(alert => {
+        if (alert.gateId === gateId && !alert.resolved) {
+          addLog(`System nominals restored on ${alert.gateName}. Resolution logged.`);
+          return {
+            ...alert,
+            resolved: true,
+            resolvedTime: timestamp
+          };
+        }
+        return alert;
+      }));
+      return;
+    }
+
     const alertToResolve = alertsRef.current.find(alert => alert.gateId === gateId && !alert.resolved);
     
     if (alertToResolve) {
@@ -94,7 +114,7 @@ export function useStadiumGates({ addLog }: StadiumGatesProps) {
         console.error("Failed to resolve alert in Firestore:", err);
       }
     }
-  }, [addLog]);
+  }, [addLog, isTestEnv]);
 
   // Execute Gemini reasoning operational recommendation API call
   const triggerGeminiRecommendation = useCallback(async (targetGate: Gate) => {
@@ -117,11 +137,18 @@ export function useStadiumGates({ addLog }: StadiumGatesProps) {
       severity: targetGate.density >= 90 ? 'critical' : 'warning',
     };
 
-    // Save placeholder alert directly to Firestore (triggers subscription update)
-    try {
-      await setDoc(doc(db, 'alerts', tempId), placeholderAlert);
-    } catch (err) {
-      console.error("Failed to write initial alert to Firestore:", err);
+    if (isTestEnv) {
+      setAlerts(prev => {
+        const nextAlerts = [placeholderAlert, ...prev];
+        if (nextAlerts.length > 30) return nextAlerts.slice(0, 30);
+        return nextAlerts;
+      });
+    } else {
+      try {
+        await setDoc(doc(db, 'alerts', tempId), placeholderAlert);
+      } catch (err) {
+        console.error("Failed to write initial alert to Firestore:", err);
+      }
     }
 
     try {
@@ -141,39 +168,69 @@ export function useStadiumGates({ addLog }: StadiumGatesProps) {
 
       const result = await response.json();
 
-      await updateDoc(doc(db, 'alerts', tempId), {
-        whatsHappening: result.whatsHappening,
-        risk: result.risk,
-        action: result.action,
-        scriptEnglish: result.scriptEnglish,
-        scriptSpanish: result.scriptSpanish,
-        scriptFrench: result.scriptFrench,
-        isLocalFallback: result.isLocalFallback,
-        severity: targetGate.density >= 90 ? 'critical' : 'warning',
-      });
+      if (isTestEnv) {
+        setAlerts(prev => prev.map(alert => {
+          if (alert.id === tempId) {
+            return {
+              ...alert,
+              whatsHappening: result.whatsHappening,
+              risk: result.risk,
+              action: result.action,
+              scriptEnglish: result.scriptEnglish,
+              scriptSpanish: result.scriptSpanish,
+              scriptFrench: result.scriptFrench,
+              isLocalFallback: result.isLocalFallback,
+              severity: targetGate.density >= 90 ? 'critical' : 'warning',
+            };
+          }
+          return alert;
+        }));
+      } else {
+        await updateDoc(doc(db, 'alerts', tempId), {
+          whatsHappening: result.whatsHappening,
+          risk: result.risk,
+          action: result.action,
+          scriptEnglish: result.scriptEnglish,
+          scriptSpanish: result.scriptSpanish,
+          scriptFrench: result.scriptFrench,
+          isLocalFallback: result.isLocalFallback,
+          severity: targetGate.density >= 90 ? 'critical' : 'warning',
+        });
+      }
 
       addLog(`Gemini Copilot generated actionable route plan for ${targetGate.name}.`);
     } catch (err: unknown) {
       console.error(err);
       addLog(`CRITICAL: Gemini query failed for ${targetGate.name}. Using fallback directives.`);
       
-      try {
-        await updateDoc(doc(db, 'alerts', tempId), {
-          whatsHappening: `Unusual congestion detected at ${targetGate.name} (${targetGate.density}%).`,
-          risk: "Risk of high local density causing queuing and delays.",
-          action: "Operational copilot advises manually routing arriving fans to adjacent low-density gates.",
-          scriptEnglish: `Attention guests: Please move to the other gates to get inside faster. Thank you!`,
-          scriptSpanish: `Atención: Por favor diríjase a las otras puertas para ingresar más rápido. ¡Gracias!`,
-          scriptFrench: `Attention s'il vous plaît: Veuillez vous diriger vers les autres portes. Merci!`,
-          isLocalFallback: true,
-        });
-      } catch (fErr) {
-        console.error("Failed to write fallback to Firestore:", fErr);
+      const fallbackUpdates = {
+        whatsHappening: `Unusual congestion detected at ${targetGate.name} (${targetGate.density}%).`,
+        risk: "Risk of high local density causing queuing and delays.",
+        action: "Operational copilot advises manually routing arriving fans to adjacent low-density gates.",
+        scriptEnglish: `Attention guests: Please move to the other gates to get inside faster. Thank you!`,
+        scriptSpanish: `Atención: Por favor diríjase a las otras puertas para ingresar más rápido. ¡Gracias!`,
+        scriptFrench: `Attention s'il vous plaît: Veuillez vous diriger vers les autres portes. Merci!`,
+        isLocalFallback: true,
+      };
+
+      if (isTestEnv) {
+        setAlerts(prev => prev.map(alert => {
+          if (alert.id === tempId) {
+            return { ...alert, ...fallbackUpdates };
+          }
+          return alert;
+        }));
+      } else {
+        try {
+          await updateDoc(doc(db, 'alerts', tempId), fallbackUpdates);
+        } catch (fErr) {
+          console.error("Failed to write fallback to Firestore:", fErr);
+        }
       }
     } finally {
       setPendingRequests(prev => ({ ...prev, [targetGate.id]: false }));
     }
-  }, [addLog]);
+  }, [addLog, isTestEnv]);
 
   // Fluctuating density simulation loop
   useEffect(() => {

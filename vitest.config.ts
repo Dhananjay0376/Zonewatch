@@ -36,6 +36,7 @@ export default defineConfig({
       dir: './.vitest_cache',
     },
     pool: 'forks',
+    // @ts-expect-error: Vitest 4.x types mismatch
     forks: {
       singleFork: true,
       isolate: false,
