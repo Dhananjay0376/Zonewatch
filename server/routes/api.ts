@@ -389,13 +389,81 @@ Respond ONLY with a JSON object:
 - "accessibilityNote": Accessibility tip (or empty string if none).
 - "inOriginalLanguage": Full route guidance in the fan's preferred language (${language}).`;
 
-  const fallbackNavigation = {
-    route: `From your current position near ${assignedGate || 'your gate'}, follow the main concourse signs. Stadium staff are stationed at every junction to assist you.`,
-    landmarks: ['Main Concourse', 'Gate Signage', 'Information Desk', 'First Aid Station'],
-    estimatedWalkMinutes: 5,
-    accessibilityNote: 'Wheelchair ramps and elevators are available near every gate entrance. Ask any volunteer for assistance.',
-    inOriginalLanguage: `Please follow stadium signage or ask any volunteer in the red jacket for directions. We are here to help!`,
-    isLocalFallback: true,
+  const getHeuristicNavigation = (q: string, gate: string, lang: string) => {
+    const queryLower = q.toLowerCase();
+    const activeGate = (gate || 'Gate B').trim();
+    
+    let facility = 'facility';
+    let walkTime = 3;
+    let landmarks = ['Main Concourse', 'Signage Board'];
+    let accessibility = 'Elevators and ramps are available at all primary gates.';
+    
+    if (queryLower.includes('toilet') || queryLower.includes('restroom') || queryLower.includes('baño') || queryLower.includes('toilette')) {
+      facility = 'Restrooms';
+      landmarks = ['Gate D Concourse', 'Zone D Concessions', 'Restroom Portal'];
+      walkTime = activeGate.includes('D') ? 1 : activeGate.includes('C') ? 3 : 5;
+      accessibility = 'Wheelchair-accessible stalls are located in all restroom pods.';
+    } else if (queryLower.includes('medical') || queryLower.includes('first aid') || queryLower.includes('médico') || queryLower.includes('hilfe') || queryLower.includes('doctor')) {
+      facility = 'Medical Station';
+      landmarks = ['Gate C Lobby', 'Emergency Care Hub', 'Red Cross Banner'];
+      walkTime = activeGate.includes('C') ? 1 : activeGate.includes('B') ? 4 : 6;
+      accessibility = 'Ramps and automated double-doors are active at the care entrance.';
+    } else if (queryLower.includes('wheelchair') || queryLower.includes('ramp') || queryLower.includes('elevator') || queryLower.includes('silla') || queryLower.includes('ruedas') || queryLower.includes('ascensor')) {
+      facility = 'Accessibility Concourse';
+      landmarks = ['Elevator Lobby', 'Gate E Ramp', 'Assistance Information Desk'];
+      walkTime = activeGate.includes('E') ? 1 : 4;
+      accessibility = 'Tactile guide paths lead directly from the elevator doors.';
+    } else if (queryLower.includes('bus') || queryLower.includes('metro') || queryLower.includes('shuttle') || queryLower.includes('parking') || queryLower.includes('transit') || queryLower.includes('estacionamiento')) {
+      facility = 'Transportation Hub';
+      landmarks = ['Lot C Exit', 'Metro Station Escalators', 'Shuttle Bus Lanes'];
+      walkTime = activeGate.includes('B') || activeGate.includes('E') ? 3 : 7;
+      accessibility = 'Level-boarding shuttles and low-floor bus routes are fully supported.';
+    } else if (queryLower.includes('food') || queryLower.includes('concession') || queryLower.includes('drink') || queryLower.includes('comida') || queryLower.includes('agua')) {
+      facility = 'Concession Pods';
+      landmarks = ['Zone C Dining area', 'Beverage Refill Station', 'Gate B Snack Kiosk'];
+      walkTime = activeGate.includes('C') || activeGate.includes('D') ? 2 : 4;
+    }
+
+    const route = `From your current location near ${activeGate}, walk along the level 1 concourse. Head towards the ${landmarks[0]} landmark, and locate the ${facility} positioned near ${landmarks[1]}.`;
+
+    let inOriginalLanguage = route;
+    const l = lang.toLowerCase();
+    if (l.includes('span') || l.includes('es')) {
+      const translationMap: Record<string, string> = {
+        'Restrooms': 'servicios higiénicos / baños',
+        'Medical Station': 'servicio médico',
+        'Accessibility Concourse': 'sector de accesibilidad',
+        'Transportation Hub': 'terminal de transporte',
+        'Concession Pods': 'puestos de comida y bebidas'
+      };
+      const translatedFacility = translationMap[facility] || facility;
+      inOriginalLanguage = `Desde su posición actual cerca de la ${activeGate}, camine por el pasillo principal. Diríjase hacia ${landmarks[0]} y encontrará el ${translatedFacility} al lado de ${landmarks[1]}. ${accessibility}`;
+    } else if (l.includes('fren') || l.includes('fr')) {
+      const translationMap: Record<string, string> = {
+        'Restrooms': 'toilettes',
+        'Medical Station': 'poste de secours médical',
+        'Accessibility Concourse': 'secteur accessibilité',
+        'Transportation Hub': 'terminal de transport',
+        'Concession Pods': 'points de restauration'
+      };
+      const translatedFacility = translationMap[facility] || facility;
+      inOriginalLanguage = `Depuis votre position actuelle près de la ${activeGate}, marchez le long du couloir. Dirigez-vous vers ${landmarks[0]} et vous trouverez ${translatedFacility} juste à côté de ${landmarks[1]}. ${accessibility}`;
+    } else if (l.includes('germ') || l.includes('de')) {
+      inOriginalLanguage = `Gehen Sie von Ihrer Position am ${activeGate} über den Hauptkorridor. Folgen Sie dem Wegweiser nach ${landmarks[0]} — dort finden Sie ${facility} direkt bei ${landmarks[1]}.`;
+    } else if (l.includes('port') || l.includes('pt') || l.includes('braz')) {
+      inOriginalLanguage = `A partir da sua posição perto do ${activeGate}, siga pelo corredor principal. Dirija-se a ${landmarks[0]} e encontrará o ${facility} ao lado de ${landmarks[1]}.`;
+    } else if (l.includes('jap') || l.includes('ja')) {
+      inOriginalLanguage = `${activeGate}付近の現在地から中央通路に沿ってお進みください。${landmarks[0]}方面へ進むと、${landmarks[1]}の近くに${facility}がございます。エレベーター等のバリアフリー設備も完備しています。`;
+    }
+
+    return {
+      route,
+      landmarks,
+      estimatedWalkMinutes: walkTime,
+      accessibilityNote: accessibility,
+      inOriginalLanguage,
+      isLocalFallback: true
+    };
   };
 
   try {
@@ -404,7 +472,7 @@ Respond ONLY with a JSON object:
     const parsed = JSON.parse(responseText) as Record<string, unknown>;
     res.json(parsed);
   } catch {
-    res.json(fallbackNavigation);
+    res.json(getHeuristicNavigation(query, assignedGate, language));
   }
 });
 

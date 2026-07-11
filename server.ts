@@ -6,10 +6,41 @@
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import apiRouter from "./server/routes/api";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Set up security headers
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:", "blob:", "https:"],
+        connectSrc: ["'self'"],
+        fontSrc: ["'self'", "data:", "https:"],
+        objectSrc: ["'none'"],
+        mediaSrc: ["'self'", "blob:", "data:"],
+      },
+    },
+  })
+);
+
+// Apply rate limiting to all API requests
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 150, // Limit each IP to 150 requests per window
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests from this IP, please try again later." },
+});
+
+app.use("/api", limiter);
 
 app.use(express.json());
 

@@ -36,13 +36,10 @@ export default defineConfig({
       dir: './.vitest_cache',
     },
     pool: 'forks',
-    // @ts-expect-error -- poolOptions is a valid vitest runtime option but absent from vitest 4.x type declarations
-    poolOptions: {
-      forks: {
-        singleFork: true,
-        isolate: false,
-        execArgv: ['--max-old-space-size=4096'],
-      },
+    forks: {
+      singleFork: true,
+      isolate: false,
+      execArgv: ['--max-old-space-size=4096'],
     },
   },
 });

@@ -103,6 +103,23 @@ export async function runWithModelRetry(
     } catch (err: unknown) {
       lastError = err;
       const msg = err instanceof Error ? err.message.toLowerCase() : String(err).toLowerCase();
+      
+      // Short-circuit retry loops on developer/semantic errors (invalid credentials, API schema violations, bad requests)
+      const isSemanticError =
+        msg.includes('api_key_invalid') ||
+        msg.includes('invalid api key') ||
+        msg.includes('api key not found') ||
+        msg.includes('key is invalid') ||
+        msg.includes('api key') && msg.includes('invalid') ||
+        msg.includes('schema') ||
+        msg.includes('400') ||
+        msg.includes('bad request');
+
+      if (isSemanticError) {
+        log.error(`Semantic configuration error encountered: ${msg}. Bypassing fallback retries.`);
+        throw err;
+      }
+
       const isExhausted =
         msg.includes('quota') ||
         msg.includes('rate limit') ||

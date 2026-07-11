@@ -81,3 +81,55 @@ describe('API Route - /api/translate', () => {
     expect(res.body.error).toBeDefined();
   });
 });
+
+describe('API Route - /api/navigation', () => {
+  let app: express.Express;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    app = express();
+    app.use(express.json());
+    app.use('/api', apiRouter);
+  });
+
+  it('should return navigation directions correctly when Gemini succeeds', async () => {
+    const mockNavResponse = {
+      route: 'Walk straight for 50m and turn right',
+      landmarks: ['Gate C Concourse'],
+      estimatedWalkMinutes: 2,
+      accessibilityNote: 'Use elevator B',
+      inOriginalLanguage: 'Walk straight for 50m and turn right'
+    };
+
+    vi.mocked(runWithModelRetry).mockResolvedValue(JSON.stringify(mockNavResponse));
+
+    const res = await request(app)
+      .post('/api/navigation')
+      .send({ query: 'Where are the restrooms?', assignedGate: 'Gate B', language: 'English' });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(mockNavResponse);
+  });
+
+  it('should fallback to dynamic heuristic wayfinding when Gemini fails', async () => {
+    vi.mocked(runWithModelRetry).mockRejectedValue(new Error('API quota limit exceeded'));
+
+    const res = await request(app)
+      .post('/api/navigation')
+      .send({ query: 'Where is the medical aid station?', assignedGate: 'Gate B', language: 'Spanish' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.isLocalFallback).toBe(true);
+    expect(res.body.landmarks).toContain('Gate C Lobby');
+    expect(res.body.estimatedWalkMinutes).toBe(4); // Gate B to medical is 4 min
+    expect(res.body.inOriginalLanguage).toContain('médico');
+  });
+
+  it('should return 400 when query is missing', async () => {
+    const res = await request(app)
+      .post('/api/navigation')
+      .send({ assignedGate: 'Gate B' });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBeDefined();
+  });
+});
