@@ -33,6 +33,7 @@ const NavigationPanel = lazy(() => import('./components/NavigationPanel'));
 const SustainabilityWidget = lazy(() => import('./components/SustainabilityWidget'));
 const TelemetryUploadHub = lazy(() => import('./components/TelemetryUploadHub'));
 import ConsoleLogs from './components/ConsoleLogs';
+import { getDensityConfig } from './utils/gateUtils';
 
 export default function App() {
   // Operational Time & System Logging states
@@ -322,37 +323,6 @@ export default function App() {
     }, 2000);
   }, []);
 
-  // Theme configuration for gate styling
-  const getDensityConfig = useCallback((density: number) => {
-    if (density < 60) {
-      return {
-        textColor: 'text-pale-mint',
-        bg: 'bg-pale-mint',
-        border: 'border-moss-dark/40',
-        label: 'NOMINAL',
-        glow: 'shadow-[0_0_15px_rgba(227,238,212,0.08)]',
-        isAlert: false
-      };
-    } else if (density <= 80) {
-      return {
-        textColor: 'text-amber-400',
-        bg: 'bg-amber-400',
-        border: 'border-amber-400/20',
-        label: 'STEADY SURGE',
-        glow: 'shadow-[0_0_15px_rgba(245,158,11,0.08)]',
-        isAlert: false
-      };
-    } else {
-      return {
-        textColor: 'text-rose-400',
-        bg: 'bg-rose-400',
-        border: 'border-rose-400/50',
-        label: 'SURGE BREACH',
-        glow: 'shadow-[0_0_20px_rgba(244,63,94,0.18)]',
-        isAlert: true
-      };
-    }
-  }, []);
 
   return (
     <div id="zonewatch-container" className="min-h-screen bg-pitch-black text-sage-soft font-sans selection:bg-pale-mint/30 selection:text-pale-mint flex flex-col justify-between overflow-x-hidden antialiased relative">

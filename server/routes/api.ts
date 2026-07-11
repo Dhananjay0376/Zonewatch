@@ -49,7 +49,14 @@ const router = Router();
 router.post('/recommend', async (req: Request<object, object, RecommendRequestBody>, res: Response) => {
   const { gate, gates, history } = req.body;
 
-  if (!gate?.id || !gate?.name || typeof gate?.density !== 'number' || !Array.isArray(gates)) {
+  if (
+    !gate || typeof gate !== 'object' ||
+    typeof gate.id !== 'string' || gate.id.length > 50 ||
+    typeof gate.name !== 'string' || gate.name.length > 100 ||
+    typeof gate.density !== 'number' || gate.density < 0 || gate.density > 100 ||
+    !Array.isArray(gates) ||
+    !gates.every((g: Gate) => g && typeof g === 'object' && typeof g.id === 'string' && typeof g.name === 'string' && typeof g.density === 'number')
+  ) {
     res.status(400).json({ error: 'Missing or invalid gate context parameters.' });
     return;
   }
@@ -106,6 +113,14 @@ Respond ONLY with a JSON object containing these exact 6 fields.`;
  */
 router.post('/broadcast-script', async (req: Request<object, object, BroadcastScriptRequestBody>, res: Response) => {
   const raw = req.body;
+  if (
+    typeof raw.whatsHappening !== 'string' ||
+    typeof raw.action !== 'string' ||
+    (raw.gateName !== undefined && typeof raw.gateName !== 'string')
+  ) {
+    res.status(400).json({ error: 'Invalid parameter types.' });
+    return;
+  }
 
   const whatsHappening = sanitise(raw.whatsHappening);
   const action = sanitise(raw.action);
@@ -153,6 +168,14 @@ Respond ONLY with a JSON object containing:
  */
 router.post('/translate', async (req: Request<object, object, TranslateRequestBody>, res: Response) => {
   const raw = req.body;
+  if (typeof raw.phrase !== 'string') {
+    res.status(400).json({ error: 'Invalid supporter voice phrase.' });
+    return;
+  }
+  if (raw.vocalTone && typeof raw.vocalTone !== 'object') {
+    res.status(400).json({ error: 'Invalid vocalTone format.' });
+    return;
+  }
   const phrase = sanitise(raw.phrase);
 
   if (!phrase) {
@@ -213,6 +236,14 @@ Respond ONLY with a JSON object containing these exact fields:
  */
 router.post('/parse-mock-file', async (req: Request<object, object, ParseMockFileRequestBody>, res: Response) => {
   const { base64Data, fileType, fileName } = req.body;
+  if (
+    typeof base64Data !== 'string' ||
+    typeof fileType !== 'string' ||
+    (fileName !== undefined && typeof fileName !== 'string')
+  ) {
+    res.status(400).json({ error: 'Invalid file upload parameters.' });
+    return;
+  }
 
   if (!base64Data) {
     res.status(400).json({ error: 'No file content provided.' });
@@ -361,6 +392,15 @@ Generate a unique id per gate (e.g. 'gate-b'). Provide a summaryOfChanges senten
  * support — core pillars of the FIFA World Cup 2026 problem statement.
  */
 router.post('/navigation', async (req: Request<object, object, NavigationRequestBody>, res: Response) => {
+  if (
+    typeof req.body.query !== 'string' ||
+    (req.body.assignedGate !== undefined && typeof req.body.assignedGate !== 'string') ||
+    (req.body.language !== undefined && typeof req.body.language !== 'string')
+  ) {
+    res.status(400).json({ error: 'Invalid navigation request parameters.' });
+    return;
+  }
+
   const query = sanitise(req.body.query);
   const assignedGate = sanitise(req.body.assignedGate, 100);
   const language = sanitise(req.body.language || 'English', 50);
