@@ -53,6 +53,13 @@ export default function App() {
     { id: 'init-3', text: 'Telemetry links nominal on Gates B, C, D, E.' }
   ]);
 
+  // Safe Logger helper
+  const addLog = useCallback((message: string) => {
+    const timestamp = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const logId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    setSystemLogs(prev => [{ id: logId, text: `[${timestamp}] ${message}` }, ...prev.slice(0, 15)]);
+  }, []);
+
   // Listen to Auth State
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -65,14 +72,7 @@ export default function App() {
       }
     });
     return () => unsubscribe();
-  }, []);
-
-  // Safe Logger helper
-  const addLog = useCallback((message: string) => {
-    const timestamp = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    const logId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    setSystemLogs(prev => [{ id: logId, text: `[${timestamp}] ${message}` }, ...prev.slice(0, 15)]);
-  }, []);
+  }, [addLog]);
 
   // 1. Consume Custom Hooks
   const {

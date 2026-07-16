@@ -42,5 +42,14 @@ export default defineConfig({
       isolate: false,
       execArgv: ['--max-old-space-size=4096'],
     },
+    coverage: {
+      provider: 'v8',
+      thresholds: {
+        lines: 80,
+        functions: 80,
+        branches: 80,
+        statements: 80
+      }
+    }
   },
 });

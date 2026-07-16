@@ -94,10 +94,20 @@ Zonewatch maintains 100% operational uptime even when Gemini is unavailable:
    ```bash
    npm run dev
    ```
-4. **Run Tests**:
+4. **Run Tests** (Vitest with coverage):
    ```bash
    npm test
    ```
+5. **Code Quality and Security**:
+   ```bash
+   npm run lint          # Run ESLint and TypeScript checks
+   npm audit             # Check for vulnerabilities
+   ```
+6. **Production Build**:
+   ```bash
+   npm run build
+   ```
+   *Note: You may see chunk size warnings (e.g., `framework` or `vendor` chunks > 500KB) during build due to heavy React/Framer Motion dependencies, which are managed via manual chunking in `vite.config.ts`.*
 
 ---
 

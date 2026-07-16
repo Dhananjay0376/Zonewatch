@@ -46,7 +46,8 @@ vi.mock('firebase/firestore', () => {
     onSnapshot: vi.fn((q, callback) => {
       // Return empty snapshots by default
       callback({
-        forEach: (cb: any) => {}
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        forEach: (_cb: unknown) => {}
       });
       return () => {};
     }),
